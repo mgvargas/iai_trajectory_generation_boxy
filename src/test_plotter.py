@@ -22,8 +22,8 @@ import rospkg
 import sys
 import yaml
 import rosbag
-from datetime import datetime, date
-from geometry_msgs.msg import PoseArray, Pose
+from datetime import datetime
+from geometry_msgs.msg import PoseArray
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
@@ -113,11 +113,11 @@ def main(r=0.0, g=0.4, b=1.0):
 def play_bag():
     pt = PlotTest()
     pack = rospkg.RosPack()
-    dir = pack.get_path('iai_markers_tracking') + '/test_plot_data/test.bag'
+    dir = pack.get_path('iai_trajectory_generation_boxy') + '/test_plot_data/test.bag'
     bag = rosbag.Bag(dir)
     for topic, msg, t in bag.read_messages(topics=['data_to_plot']):
         print 'plot'
-        pt.create_markers(msg)
+        pt.create_markers(msg, 0.0, 0.4, 1.0)
     bag.close()
 
 
