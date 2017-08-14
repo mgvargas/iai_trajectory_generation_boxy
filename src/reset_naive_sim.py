@@ -29,7 +29,7 @@ def init_joint_state():
     try:
         # Open YAML configuration file
         pack = rospkg.RosPack()
-        dir = pack.get_path('iai_markers_tracking') + '/config/controller_param.yaml'
+        dir = pack.get_path('iai_trajectory_generation_boxy') + '/config/controller_param.yaml'
         stream = open(dir, 'r')
         data = yaml.load(stream)
 
