@@ -54,7 +54,7 @@ def acceleration_change(acceleration, iterat):
     difference = []
     for acc in acceleration:
         difference.append(abs(old_acc - acc))
-        old_acc = acc
+        old_acc = np.array(acc)
 
     for step in difference:
         for x,joint in enumerate(step):
@@ -73,17 +73,19 @@ def evaluation(traj):
     vel_change = []
     length = []
     grades = [0]*num
+    rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
 
     # Calculate change in velocity, in acceleration and length of each trajectory
     for trajectory in traj.trajectories:
         vel, acc, l = velocity_change(trajectory)
-        vel_change.append(vel)
-        acc_change.append(acceleration_change(acc, l))
-        length.append(l)
+        if vel:
+            vel_change.append(vel)
+            acc_change.append(acceleration_change(acc, l))
+            length.append(l)
 
-    print 'vel_change: ',vel_change
+    '''print 'vel_change: ',vel_change
     print 'acc_change: ',acc_change
-    print 'len: ',length
+    print 'len: ',length'''
 
     min_vel = vel_change.index(min(vel_change))
     min_acc = acc_change.index(min(acc_change))
@@ -92,6 +94,8 @@ def evaluation(traj):
     grades[min_acc] += 1
     grades[min_length] += 1.5
     selected_traj = grades.index(max(grades))
+
+    rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
 
     return selected_traj
 

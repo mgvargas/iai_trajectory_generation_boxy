@@ -52,7 +52,7 @@ class SelectGoal:
         self.joint_limits_lower = []
         self.joint_limits_upper = []
         self.joint_names = []
-        self.gp_weights = np.zeros(6)
+        self.gp_weights = np.zeros(3)
 
         # Arm selection
         self.left_arm = False
@@ -132,20 +132,14 @@ class SelectGoal:
         if len(self.grasping_poses) > 0:
             self.gp_weights = np.zeros(len(self.grasping_poses))
 
-    # TODO: Change to a smarter selector (from a ROS Topic maybe)
-    def object_selector(self, object):
+    def object_grasping_poses(self, object):
         # From the found objects, select one to grasp
-        if self.old_list != self.object_list:
-            found = False
-            for obj in self.object_list:
-                if obj == 'cup':
-                #if obj == 'knorr_tomate':
-                    self.grasping_poses_service(obj)
-                    found = True
-            if not found:
-                pass
-                # self.grasping_poses_service(self.object_list[0])
-        self.old_list = self.object_list
+        for obj in self.object_list:
+            if obj == object:
+            # if obj == 'cup':
+            # if obj == 'knorr_tomate':
+                self.grasping_poses_service(obj)
+
         return self.grasping_poses
 
     def grasping_poses_service(self, goal_obj):
@@ -276,9 +270,8 @@ class SelectGoal:
 
         return jacobian
 
-    def arm_selector(self, object):
+    def arm_selector(self):
         # Find closest grasping pose of a given object
-        self.object_selector(object)
         closest_pose = self.goal_by_distance()
 
         # Obtain manipulability of initial pose of arms
@@ -363,7 +356,7 @@ class SelectGoal:
         try:
             # Open YAML configuration file
             pack = rospkg.RosPack()
-            dir = pack.get_path('iai_markers_tracking') + '/config/controller_param.yaml'
+            dir = pack.get_path('iai_trajectory_generation_boxy') + '/config/controller_param.yaml'
             stream = open(dir, 'r')
             data = yaml.load(stream)
 
@@ -451,7 +444,6 @@ class SelectGoal:
             rospy.loginfo('Action state: {}.'.format(state))
             if state =='SUCCEEDED':
                 rospy.loginfo('Action Result: Trajectory generated.')
-            # print '------- Printing Trajectory!!\n',action_result
         else:
             state = state_string[self.gp_action.get_state()]
             if state == 'ABORTED':
@@ -467,7 +459,7 @@ class SelectGoal:
         return action_result, state
 
     def action_feedback_cb(self, msg):
-        rospy.loginfo('Action Feedback: {}'.format(msg.sim_status))
+        #rospy.loginfo('Action Feedback: {}'.format(msg.sim_status))
         partial_trajectory = msg.sim_trajectory
         # print partial_trajectory
 
@@ -500,13 +492,14 @@ class ProjectedGraspingServer:
         self.action_status = GoalStatus()
 
     def action_callback(self, cb):
-        self.object_to_grasp = cb.goal.object
+        self.object_to_grasp = cb.goal.goal.object
+        print 'Object: ', self.object_to_grasp
         self.goal_received = True
-        self.goal_id = self.action_status.goal_id = cb.goal.goal_id
+        self.action_status.goal_id.id = cb.goal.goal_id.id
         return self.object_to_grasp, self.goal_received
 
     def cancel_cb(self, cb):
-        self.action_server.internal_cancel_callback(goal_id=self.goal_id)
+        self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id.id)
         self.action_status.status = 4
         self.goal_received = False
         self.action_server.publish_result(self.action_status, self.result)
@@ -514,9 +507,8 @@ class ProjectedGraspingServer:
         return False, self.goal_received
 
     def send_trajectory(self, traj_obtained):
-        print 'ho'
         if traj_obtained:
-            self.action_status = 3
+            self.action_status.status = 3
             self.result.selected_trajectory = traj_obtained
             rospy.loginfo('Action %s: Succeeded' % self.action_name)
             self.action_server.publish_result(self.action_status, self.result)
@@ -545,16 +537,17 @@ def main():
 
 
     while not rospy.is_shutdown():
-        #(object_to_grasp, received) = ProjectedGraspingServer(selected_trajectory)
-        object_to_grasp = receive_goal.send_trajectory(selected_trajectory)
-        print 'hi'
-        received = False
+        (object_to_grasp, received) = receive_goal.send_trajectory(selected_trajectory)
+        selected_trajectory = False
 
         if received:
+            print 'received!'
+            # Get list of grasping poses oj the object
+            goal_class.object_grasping_poses(object_to_grasp)
             # Init weights
             goal_class.init_gp_weights()
             # Initial arm selection based on distance to closest grasping pose and manipulability
-            arm = goal_class.arm_selector(object_to_grasp)
+            arm = goal_class.arm_selector()
             # Write YAML file with controller specifications
             goal_class.yaml_writer()
 
@@ -568,11 +561,16 @@ def main():
                 trajectories.append(trajectory)
                 reset_naive_sim.reset_simulator()
 
-            selected = trajectory_evaluation_service(trajectories)
-            selected_trajectory = trajectories[selected.selected_trajectory]
-            rospy.loginfo(selected)
+            if len(trajectories) > 0:
+                selected = trajectory_evaluation_service(trajectories)
+                if not selected is -1:
+                    selected_trajectory = trajectories[selected.selected_trajectory]
+                    rospy.loginfo(selected)
+            else:
+                rospy.logerr('Trajectory generation failed')
 
-        #break
+            #break
+
         else:
             rospy.sleep(0.3)
     rospy.spin()
