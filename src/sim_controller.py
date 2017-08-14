@@ -16,28 +16,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import rospy
-import actionlib
-import sys
 import math
-import tf2_ros
-import PyKDL as kdl
 import numpy as np
-from urdf_parser_py.urdf import URDF
-from iai_trajectory_generation_boxy.msg import MoveToGPAction, MoveToGPFeedback, MoveToGPResult
-from tf.transformations import quaternion_slerp, quaternion_from_euler
-from actionlib_msgs.msg import GoalStatus
-from iai_naive_kinematics_sim.msg import ProjectionClock
-from kdl_parser import kdl_tree_from_urdf_model
-from geometry_msgs.msg import PoseArray, Pose
-from sensor_msgs.msg import JointState
-from qpoases import PyReturnValue as returnValue
-from qpoases import PySQProblem as SQProblem
+import sys
 from qpoases import PyOptions as Options
 from qpoases import PyPrintLevel as PrintLevel
+from qpoases import PyReturnValue as returnValue
+from qpoases import PySQProblem as SQProblem
+
+import PyKDL as kdl
+import actionlib
 # Plot for debugging
-import plotly
+import plotly.offline
 import plotly.graph_objs as go
+import rospy
+import tf2_ros
+from actionlib_msgs.msg import GoalStatus
+from geometry_msgs.msg import PoseArray, Pose
+from iai_naive_kinematics_sim.msg import ProjectionClock
+from iai_trajectory_generation_boxy.msg import MoveToGPAction, MoveToGPFeedback, MoveToGPResult
+from sensor_msgs.msg import JointState
+from tf.transformations import quaternion_slerp, quaternion_from_euler
+from urdf_parser_py.urdf import URDF
+
+from kdl_parser import kdl_tree_from_urdf_model
 
 
 class MoveToGPServer:
@@ -157,7 +159,7 @@ class MoveToGPServer:
         try:
             self.urdf_model = URDF.from_parameter_server()
         except (OSError, LookupError) as error:
-            rospy.logerr("Unexpected error while reading URDF:"), sys.exc_info()[0]
+            rospy.logerr("Unexpected error while reading URDF:", error), sys.exc_info()[0]
 
     def generate_trajectory(self, time):
         if self.goal_received:
@@ -289,18 +291,19 @@ class MoveToGPServer:
         self.pub_clock.publish(clock)
 
         # Plot for debugging
-        t = np.array(i)
+        t = np.array([i])
         base_weight = np.array(self.jweights[0, 0])
         arm_weight = np.array(self.jweights[4, 4])
         triang_weight = np.array(self.jweights[3, 3])
         low, pos, high, vel_p, error = [], [], [], [], []
+
         for x in range(6):
-            error.append(np.array(0))
+            error.append(np.array([0]))
         for x in range(8):
-            low.append(np.array(self.lbA[9+x]/2))
+            low.append(np.array([self.lbA[9+x]/2]))
             pos.append(np.array(self.joint_values[x+3]))
             vel_p.append(np.array(Opt[x+3]))
-            high.append(np.array(self.ubA[9+x]/2))
+            high.append(np.array([self.ubA[9+x]/2]))
 
         while np.any(limit_p > precision) or np.any(limit_o > precision_o):
             # tic = rospy.get_rostime()
@@ -454,7 +457,7 @@ class MoveToGPServer:
                           xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3, ),
                           yaxis=dict(title='Position / Velocity'), )
             fig = dict(data=data, layout=layout)
-            plotly.offline.plot(fig, filename='html/joint_limits'+str(x)+'.html')'''
+            plotly.offline.plot(fig, filename='html/joint_limits'+str(x)+'.html')
         data = []
         for x in range(6):
             t_err = go.Scatter(
@@ -465,14 +468,14 @@ class MoveToGPServer:
                       xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3, ),
                       yaxis=dict(title='Error', gridwidth=3, ), )
         fig = dict(data=data, layout=layout)
-        plotly.offline.plot(fig, filename='html/error.html')
+        plotly.offline.plot(fig, filename='html/error.html', image='png', image_filename='error.html')
 
         data = [t_base, t_arm, t_triang]
         layout = dict(title="Weighs.",
                       xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3,),
                       yaxis=dict(title='Weights',gridwidth=3,),)
         fig = dict(data=data, layout=layout)
-        plotly.offline.plot(fig, filename='html/weights.html')
+        plotly.offline.plot(fig, filename='html/weights.html', image='png', image_filename='html/weights.html')'''
 
         return 0
 
@@ -546,7 +549,7 @@ class MoveToGPServer:
     def calc_eef_position(self, joint_val):
         # Calculates current EEF pose and stores it in self.eef_pose
         joint_posit = kdl.JntArray(self.nJoints)
-        for n,joint in enumerate(joint_posit):
+        for n, joint in enumerate(joint_posit):
             joint_posit[n] = joint_val[n]
         kinem_status = self.kdl_fk_solver.JntToCart(joint_posit, self.eef_pose)
         if kinem_status>=0:
