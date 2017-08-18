@@ -389,7 +389,7 @@ class SelectGoal:
             # Write file
             with open(dir, 'w') as outfile:
                 yaml.dump(data, outfile, default_flow_style=False)
-        except yaml.YAMLError:
+        except yaml.YAMLError, KeyError:
             rospy.logerr("Unexpected error while writing controller configuration YAML file:"), sys.exc_info()[0]
             return -1
 
@@ -436,7 +436,7 @@ class SelectGoal:
         state_string = self.action_state_to_string()
 
         rospy.loginfo('Sending goal to MoveToGP Action.')
-        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(8))
+        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(20))
 
         if wait_for_result:
             rospy.sleep(0.05)
@@ -499,7 +499,7 @@ class ProjectedGraspingServer:
         return self.object_to_grasp, self.goal_received
 
     def cancel_cb(self, cb):
-        self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id.id)
+        self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id)
         self.action_status.status = 4
         self.goal_received = False
         self.action_server.publish_result(self.action_status, self.result)
@@ -534,14 +534,16 @@ def main():
     selected_trajectory = False
     receive_goal = ProjectedGraspingServer()
     goal_class = SelectGoal()
+    rospy.loginfo('Starting service Projected Grasping')
 
 
     while not rospy.is_shutdown():
         (object_to_grasp, received) = receive_goal.send_trajectory(selected_trajectory)
         selected_trajectory = False
+        print received
 
         if received:
-            print 'received!'
+            received = False
             # Get list of grasping poses oj the object
             goal_class.object_grasping_poses(object_to_grasp)
             # Init weights
@@ -555,10 +557,11 @@ def main():
             goal_class.dist_to_joint_limits(arm)
 
             trajectories = []
-            for x in range(2):
+            for x in range(1):
                 test_plotter.main(x / 6.0 + 0.2, x / 3.0 + 0.1, x / 4.0 + 0.3)
                 trajectory, status = goal_class.call_gp_action()
-                trajectories.append(trajectory)
+                if status == 'SUCCEEDED':
+                    trajectories.append(trajectory)
                 reset_naive_sim.reset_simulator()
 
             if len(trajectories) > 0:
@@ -568,6 +571,7 @@ def main():
                     rospy.loginfo(selected)
             else:
                 rospy.logerr('Trajectory generation failed')
+                receive_goal.cancel_cb(0)
 
             #break
 
