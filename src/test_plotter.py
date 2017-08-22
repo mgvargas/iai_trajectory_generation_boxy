@@ -69,6 +69,7 @@ class PlotTest:
             markerArray.markers.append(marker)
 
         #self.yaml_writer(markerArray)
+        rospy.loginfo('Plotting EEF trajectory')
         self.marker_pub.publish(markerArray)
         # print 'r, g, b', r, g, b
 
@@ -103,10 +104,8 @@ class PlotTest:
         return 0
 
 def main(r=0.0, g=0.4, b=1.0):
-    print 'plotting trajectory'
     PlotTest(r, g, b)
     #play_bag()
-
     return 0
 
 
