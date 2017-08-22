@@ -66,9 +66,10 @@ def acceleration_change(acceleration, iterat):
     return np.mean(jerk_active)
 
 
-def evaluation(traj):
+def evaluation(request):
     # Variable definition
-    num = len(traj.trajectories)
+    num = len(request.trajectories)
+    manipulability = request.manipulability
     acc_change = []
     vel_change = []
     length = []
@@ -76,7 +77,7 @@ def evaluation(traj):
     rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
 
     # Calculate change in velocity, in acceleration and length of each trajectory
-    for trajectory in traj.trajectories:
+    for trajectory in request.trajectories:
         vel, acc, l = velocity_change(trajectory)
         if vel:
             vel_change.append(vel)
@@ -90,9 +91,11 @@ def evaluation(traj):
     min_vel = vel_change.index(min(vel_change))
     min_acc = acc_change.index(min(acc_change))
     min_length = length.index(min(length))
+    max_manip = manipulability.index(max(manipulability))
     grades[min_vel] += 1
     grades[min_acc] += 1
     grades[min_length] += 1.5
+    grades[max_manip] += 2
     selected_traj = grades.index(max(grades))
 
     rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
