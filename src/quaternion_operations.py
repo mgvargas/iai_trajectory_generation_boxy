@@ -69,6 +69,29 @@ def q_inv(q1):
     return np.array([x, y, z, w])
 
 
+def slerp(self, q0, q1, t=1.0):
+    # Interpolation between 2 quaternions, from 0 <= t <= 1
+    dot_threshold = 0.9995
+    q0_norm = self.normalize_quat(q0)
+    q1_norm = self.normalize_quat(q1)
+    dot = q0_norm[0] * q1_norm[0] + q0_norm[1] * q1_norm[1] + q0_norm[2] * q1_norm[2] + q0_norm[3] * q1_norm[3]
+
+    # if quaternions are too close, do linear interpolation
+    if abs(dot) > dot_threshold:
+        q_slerp = q0_norm + t * (q1_norm - q0_norm)
+        return q_slerp
+    # if slerp wants to take the long path (>180 deg), change it
+    if dot < 0.0:
+        q1_norm = -q1_norm
+        dot = -dot
+    theta_0 = math.acos(dot)
+    theta = theta_0 * t
+    q2 = q1_norm - q0_norm * dot
+    q2_norm = self.normalize_quat(q2)
+
+    return q0 * math.cos(theta) + q2_norm * math.sin(theta)
+
+
 def main():
     print 'Some simple operations with quaternions'
 
