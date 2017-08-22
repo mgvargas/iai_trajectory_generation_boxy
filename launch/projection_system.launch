@@ -49,9 +49,9 @@
         </include>
     </group>
 
-    <!-- Simulate robot trajectory -->
+    <!-- Simulate robot trajectory >
     <node name="sim_motion_controller" pkg="iai_trajectory_generation_boxy" type="sim_controller.py"
-          respawn="false" output="screen"/>
+          respawn="false" output="screen"/-->
     <node name="trajectory_evaluation" pkg="iai_trajectory_generation_boxy" type="trajectory_evaluation.py"
           respawn="false" output="screen"/>
 
