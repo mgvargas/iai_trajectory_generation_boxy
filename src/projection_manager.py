@@ -28,6 +28,7 @@ import actionlib
 import reset_naive_sim
 import test_plotter
 from actionlib_msgs.msg import GoalStatus
+from random import randrange
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingAction, ProjectedGraspingResult
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, MoveToGPAction, MoveToGPGoal
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
@@ -270,10 +271,7 @@ class SelectGoal:
 
         return jacobian
 
-    def arm_selector(self):
-        # Find closest grasping pose of a given object
-        closest_pose = self.goal_by_distance()
-
+    def arm_selector(self, closest_pose):
         # Obtain manipulability of initial pose of arms
         left_jac = self.get_jacobian('left_chain')
         right_jac = self.get_jacobian('right_chain')
@@ -289,10 +287,12 @@ class SelectGoal:
             self.frame_end = self.grip_left
             self.desired_chain = 'left_chain'
             self.gp_weights[self.elem] += 0.35
+            jacobian = left_jac
         elif self.right_arm is True and manip_r > self.manip_threshold:
             self.frame_end = self.grip_right
             self.desired_chain = 'right_chain'
             self.gp_weights[self.elem] += 0.35
+            jacobian = right_jac
         else:
             dist_rate = self.min_dist_l / self.min_dist_r
             if manip_l > manip_r and dist_rate <= self.distance_threshold:
@@ -304,6 +304,7 @@ class SelectGoal:
                 self.desired_chain = 'left_chain'
                 self.left_arm = True
                 self.right_arm = False
+                jacobian = left_jac
             else:
                 elem = [i for i, d in enumerate(self.dist_r) if d == self.min_dist_r]
                 self.elem = elem[0]
@@ -313,6 +314,7 @@ class SelectGoal:
                 self.desired_chain = 'right_chain'
                 self.left_arm = False
                 self.right_arm = True
+                jacobian = right_jac
 
         # print '\nweights: ', self.gp_weights
         self.goal_pose = self.goal_pose_tf(closest_pose.child_frame_id)
@@ -322,7 +324,7 @@ class SelectGoal:
         rospy.loginfo('The selected arm is {}, going to {}\n'.format(self.desired_chain,
                                                                      self.goal_pose.child_frame_id))
 
-        return self.desired_chain
+        return self.desired_chain, jacobian
 
     @staticmethod
     def get_manipulability(jacobian):
@@ -347,8 +349,8 @@ class SelectGoal:
         try:
             manip = math.sqrt(np.linalg.det(np.dot(jac, jac_t)))
             return manip
-        except ValueError:
-            rospy.logerr("No TF found, can't calculate manipulability")
+        except ValueError as e:
+            rospy.logerr("Can't calculate manipulability",e)
             return -1
 
     def yaml_writer(self):
@@ -377,7 +379,7 @@ class SelectGoal:
                     arm = 'right'
                     joint_w_values.update({val: self.right_jnt_pos[n]})'''
             controlled_joint_names = self.urdf_model.get_chain('odom', self.frame_end, links=False, fixed=False)
-            data['controlled_joints'] = controlled_joint_names
+            #data['controlled_joints'] = controlled_joint_names
             data['simulated_links'] = sim_links_names
             # data['start_config'] = joint_w_values
             data['projection_mode'] = False
@@ -404,7 +406,7 @@ class SelectGoal:
             goal_pose = pose
         return goal_pose
 
-    # TODO: Finish this function
+    # TODO: Delete/Finish this function
     def dist_to_joint_limits(self, chain):
         # Obtains the distance to joint limits
         limit_warning = False
@@ -436,7 +438,7 @@ class SelectGoal:
         state_string = self.action_state_to_string()
 
         rospy.loginfo('Sending goal to MoveToGP Action.')
-        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(20))
+        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(10))
 
         if wait_for_result:
             rospy.sleep(0.05)
@@ -478,6 +480,64 @@ class SelectGoal:
             9: 'LOST'}
         return state
 
+    def select_new_gp(self, closest_pose, object_to_grasp):
+        # Select second closest pose:
+        if len(self.grasping_poses) > 1:
+            print self.grasping_poses
+            print 'remove',closest_pose.child_frame_id
+            self.grasping_poses.remove(closest_pose.child_frame_id)
+            new_pose = self.goal_by_distance()
+            arm, jacobian = self.arm_selector(new_pose)
+        else:
+            grasping_poses = self.object_grasping_poses(object_to_grasp)
+            print grasping_poses
+            # Change arm
+            if self.left_arm:
+                self.frame_end = self.grip_right
+                self.desired_chain = 'right_chain'
+                self.right_arm = True
+                self.left_arm = False
+            else:
+                self.frame_end = self.grip_left
+                self.desired_chain = 'left_chain'
+                self.left_arm = True
+                self.right_arm = False
+
+            arm = self.desired_chain
+            jacobian = self.get_jacobian(self.desired_chain)
+
+            # Find closest grasping pose
+            self.trans = [0] * len(grasping_poses)
+            self.dist = [0] * len(grasping_poses)
+
+            for n, pose in enumerate(grasping_poses):
+                try:
+                    self.trans[n] = self.tfBuffer.lookup_transform(self.frame_end, pose,
+                                                                     rospy.Time(0), rospy.Duration(2, 5e8))
+                    self.dist[n] = math.sqrt(self.trans[n].transform.translation.x ** 2
+                                             + self.trans[n].transform.translation.y ** 2
+                                             + self.trans[n].transform.translation.z ** 2)
+
+                except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
+                    rospy.logerr('No TF found between gripper and object. ', exc)
+                    continue
+
+            self.min_dist = min(d for d in self.dist)
+            elem = [i for i, d in enumerate(self.dist) if d == self.min_dist]
+            self.elem = elem[0]
+            self.gp_weights[self.elem] += 0.4
+            closest_pose = self.trans[self.elem]
+
+            new_pose = self.goal_pose = self.goal_pose_tf(closest_pose.child_frame_id)
+
+            self.kinem_chain(self.frame_end)
+
+            rospy.loginfo('The selected arm is {}, going to {}\n'.format(self.desired_chain,
+                                                                         self.goal_pose.child_frame_id))
+        # Write YAML file with controller specifications
+        self.yaml_writer()
+        return arm, jacobian, new_pose
+
 
 class ProjectedGraspingServer:
     def __init__(self):
@@ -513,19 +573,77 @@ class ProjectedGraspingServer:
             rospy.loginfo('Action %s: Succeeded' % self.action_name)
             self.action_server.publish_result(self.action_status, self.result)
             self.goal_received = False
+            self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id)
         return self.object_to_grasp, self.goal_received
 
 
-def trajectory_evaluation_service(trajectories):
+def trajectory_evaluation_service(trajectories, manipulability):
     # Calling a service that evaluates obtained trajectories and selects the best one
     rospy.wait_for_service('trajectory_evaluation')
     try:
         evaluate = rospy.ServiceProxy('trajectory_evaluation', TrajectoryEvaluation)
-        selected_traj = evaluate(trajectories)
+        print 'mani', manipulability
+        selected_traj = evaluate(trajectories, manipulability)
         return selected_traj
     except rospy.ServiceException, e:
         rospy.logerr("Service 'Trajectory Evaluation' call failed: %s" % e)
         return -1
+
+
+def request(receive_goal, projection_class, selected_trajectory):
+    # Check if goal object has been received
+    (object_to_grasp, received) = receive_goal.send_trajectory(selected_trajectory)
+    selected_trajectory = False
+
+    if received:
+        received = False
+
+        # Get list of grasping poses oj the object
+        projection_class.object_grasping_poses(object_to_grasp)
+        # Init weights
+        projection_class.init_gp_weights()
+        # Find closest grasping pose
+        closest_pose = projection_class.goal_by_distance()
+        # Initial arm selection based on distance to closest grasping pose and manipulability
+        arm, jacobian = projection_class.arm_selector(closest_pose)
+        # Write YAML file with controller specifications
+        projection_class.yaml_writer()
+
+        # Distance to joint limits
+        projection_class.dist_to_joint_limits(arm)
+
+        trajectories = []
+        manipulability = []
+        found_traj = 0
+        for x in range(5):
+            # Plot EEF trajectory in RVIZ
+            test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
+            trajectory, status = projection_class.call_gp_action()
+            if status == 'SUCCEEDED':
+                manipulability.append(projection_class.get_manipulability(jacobian))
+                trajectories.append(trajectory)
+                found_traj += 1
+                if found_traj >= 2: # If trajectory succeded twice for that GP, try next one
+                    arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
+            else:
+                # IF trajectory failed, choose next grasping pose
+                print '---------', x
+                arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
+                found_traj = 0
+            reset_naive_sim.reset_simulator()
+
+        if len(trajectories) > 0:
+            selected = trajectory_evaluation_service(trajectories, manipulability)
+            if not selected is -1:
+                selected_trajectory = trajectories[selected.selected_trajectory]
+                rospy.loginfo(selected)
+        else:
+            rospy.logerr('Trajectory generation failed')
+            receive_goal.cancel_cb(0)
+
+    else:
+        rospy.sleep(0.3)
+    return selected_trajectory
 
 
 def main():
@@ -533,50 +651,13 @@ def main():
     rospy.Rate(100)
     selected_trajectory = False
     receive_goal = ProjectedGraspingServer()
-    goal_class = SelectGoal()
+    projection_class = SelectGoal()
     rospy.loginfo('Starting service Projected Grasping')
 
 
     while not rospy.is_shutdown():
-        (object_to_grasp, received) = receive_goal.send_trajectory(selected_trajectory)
-        selected_trajectory = False
-        print received
+        selected_trajectory = request(receive_goal, projection_class, selected_trajectory)
 
-        if received:
-            received = False
-            # Get list of grasping poses oj the object
-            goal_class.object_grasping_poses(object_to_grasp)
-            # Init weights
-            goal_class.init_gp_weights()
-            # Initial arm selection based on distance to closest grasping pose and manipulability
-            arm = goal_class.arm_selector()
-            # Write YAML file with controller specifications
-            goal_class.yaml_writer()
-
-            # Distance to joint limits
-            goal_class.dist_to_joint_limits(arm)
-
-            trajectories = []
-            for x in range(1):
-                test_plotter.main(x / 6.0 + 0.2, x / 3.0 + 0.1, x / 4.0 + 0.3)
-                trajectory, status = goal_class.call_gp_action()
-                if status == 'SUCCEEDED':
-                    trajectories.append(trajectory)
-                reset_naive_sim.reset_simulator()
-
-            if len(trajectories) > 0:
-                selected = trajectory_evaluation_service(trajectories)
-                if not selected is -1:
-                    selected_trajectory = trajectories[selected.selected_trajectory]
-                    rospy.loginfo(selected)
-            else:
-                rospy.logerr('Trajectory generation failed')
-                receive_goal.cancel_cb(0)
-
-            #break
-
-        else:
-            rospy.sleep(0.3)
     rospy.spin()
 
 
