@@ -129,10 +129,13 @@ class MoveToGPServer:
         self.action_server.publish_status()
         self.goal_received = True
         self.active_goal_flag = True
+        self.reach_pregrasp = False
 
         # Goal definition
         self.goal_id = self.action_status.goal_id = cb.goal.goal_id
         self.goal_pose = cb.goal.goal.grasping_pose
+        self.pre_grasp = cb.goal.goal.pre_grasping
+        print self.pre_grasp
         self.pose_name = self.goal_pose.child_frame_id
         self.arm = cb.goal.goal.arm
         self._feedback.sim_trajectory = []
@@ -175,36 +178,51 @@ class MoveToGPServer:
             self.goal_received = False
         return 0
 
-    def calc_posit_error(self):
+    def calc_posit_error(self, error_posit):
+        # Error threshold
+        threshold = 0.02 * self.prop_gain
+
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
-        error_posit = (self.goal_posit - eef_posit) * self.prop_gain
+
+        # Select between pre-grasping pose and grasping pose
+        if max(error_posit) > threshold and not self.reach_pregrasp:
+            error_posit = (self.pregrasp_posit - eef_posit) * self.prop_gain
+        else:
+            self.reach_pregrasp = True
+            error_posit = (self.goal_posit - eef_posit) * self.prop_gain
         limit_p = [abs(x/self.prop_gain) for x in error_posit]
         return error_posit, limit_p
 
     def calc_orient_error(self, eef_orient, goal_orient, thresh, limit_p):
-        if limit_p[2] >= 0.5:
-            error_orient = np.array([0.0, 0.0, 0.0])
-            rot_error = 1
+        # Error threshold
+        precision_o = 0.17 # 10 deg tolerance
+        z_threshold = 0.4 # 23 deg tolerance
+        reached_orientation = False
+
+        eef_inv = qo.q_inv(eef_orient)
+        rot_vector = qo.q_mult(eef_inv, goal_orient)
+        rot_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2) + pow(rot_vector[2], 2))
+
+        if (thresh - rot_error) >= 0:
+            scaling = 1
         else:
-            eef_inv = qo.q_inv(eef_orient)
-            rot_vector = qo.q_mult(eef_inv, goal_orient)
-            rot_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2) + pow(rot_vector[2], 2))
+            scaling = thresh/rot_error
 
-            if (thresh - rot_error) >= 0:
-                scaling = 0.9
-            else:
-                scaling = thresh/rot_error
+        slerp = quaternion_slerp(eef_orient, goal_orient, scaling)
+        quat_error = qo.q_mult(slerp, eef_inv)
+        error_orient = euler_from_quaternion(quat_error)
 
-            slerp = quaternion_slerp(eef_orient, goal_orient, scaling)
-            quat_error = qo.q_mult(slerp, eef_inv)
-            error_orient = euler_from_quaternion(quat_error)
-            print 'eef_ori:   ', euler_from_quaternion(eef_orient)
-            print 'slerp:     ', euler_from_quaternion(slerp)
-            print 'goal_ori:  ', self.goal_orient
-            print 'ori error: ', error_orient
-            print 'scale ', scaling
-        return error_orient, rot_error
+        # Stopping conditions
+        x_y_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2))
+        if x_y_error < precision_o and  error_orient[2] < z_threshold:
+            reached_orientation = True
+        '''print 'eef_ori:   ', euler_from_quaternion(eef_orient)
+        print 'slerp:     ', euler_from_quaternion(slerp)
+        print 'goal_ori:  ', self.goal_orient_euler
+        print 'ori error: ', error_orient
+        print 'scale ', scaling'''
+        return error_orient, reached_orientation
 
     def qpoases_config(self):
         # QPOases needs as config parameters:
@@ -231,25 +249,29 @@ class MoveToGPServer:
         # Calculate acceleration limits
         [ac_lim_lower, ac_lim_upper] = self.acceleration_limits(joint_velocity)
 
-        # Error in EEF orientation, if error in Z > 180 deg, rotate goal 180 deg
+        # Error in EEF orientation, if error in Z > 90 deg, rotate goal 180 deg
         self.calc_eef_position(self.joint_values)
         self.goal_quat = np.array([self.goal_pose.transform.rotation.x, self.goal_pose.transform.rotation.y,
                          self.goal_pose.transform.rotation.z, self.goal_pose.transform.rotation.w])
-        self.goal_orient = euler_from_quaternion(self.goal_quat)
+        self.goal_orient_euler= euler_from_quaternion(self.goal_quat)
 
         eef_orient_quat = qo.rotation_to_quaternion(self.eef_pose.M)
-        limit_rot_z = abs(euler_from_quaternion(eef_orient_quat)[2] - self.goal_orient[2])
-        if limit_rot_z > radians(180):
-            print 'rotate goal'
+
+        limit_rot_z = abs(euler_from_quaternion(eef_orient_quat)[2] - self.goal_orient_euler[2])
+        if limit_rot_z > radians(90):
+            print 'rotate goal in Z'
             rot = quaternion_from_euler(0, 0, radians(180))
             self.goal_quat  = qo.q_mult(self.goal_quat, rot)
-            self.goal_orient = euler_from_quaternion(self.goal_quat)
+            self.goal_orient_euler = euler_from_quaternion(self.goal_quat)
+
         error_orient = np.array([0.0, 0.0, 0.0])
 
         # Error in EEF position
+        self.pregrasp_posit = np.array([self.pre_grasp.transform.translation.x, self.pre_grasp.transform.translation.y,
+                               self.pre_grasp.transform.translation.z])
         self.goal_posit = np.array([self.goal_pose.transform.translation.x, self.goal_pose.transform.translation.y,
-                               self.goal_pose.transform.translation.z])
-        error_posit, lim = self.calc_posit_error()
+                                    self.goal_pose.transform.translation.z])
+        error_posit, lim = self.calc_posit_error(np.array([1.0, 1.0, 1.0]))
 
         # Get jacobian
         self.jacobian = self.get_jacobian()
@@ -259,7 +281,6 @@ class MoveToGPServer:
         A_joint_lim = np.hstack((np.eye(self.nJoints), np.zeros((self.nJoints, self.n_slack))))
         A_accel_lim = np.hstack((np.eye(self.nJoints), np.zeros((self.nJoints, self.n_slack))))
         self.A = np.concatenate((A_goal, A_joint_lim, A_accel_lim), axis=0)
-        # self.A = np.concatenate((A_goal, A_joint_lim), axis=0)
         self.problem_size = np.shape(self.A)
         # print 'A ', np.shape(self.A), '\n',self.A
 
@@ -270,8 +291,6 @@ class MoveToGPServer:
         self.joint_dist_upper_lim = np.subtract(self.joint_limits_upper, self.joint_values)
         self.lbA = np.hstack((error_posit, error_orient, self.joint_dist_lower_lim, ac_lim_lower))
         self.ubA = np.hstack((error_posit, error_orient, self.joint_dist_upper_lim, ac_lim_upper))
-        # self.lbA = np.hstack((error_posit, error_orient, self.joint_dist_lower_lim))
-        # self.ubA = np.hstack((error_posit, error_orient, self.joint_dist_upper_lim))
 
         # Create vector g
         self.g = np.zeros(self.nJoints+self.n_slack)
@@ -292,9 +311,9 @@ class MoveToGPServer:
         # Variable initialization
         self._feedback.sim_trajectory = [self.current_state]
         error_orient = np.array([0.0, 0.0, 0.0])
-        limit_o = 1
         limit_p = [abs(x) for x in error_posit]
         eef_pose_array = PoseArray()
+        reached_orientation = False
 
         # Setting up QProblem object
         vel_calculation = SQProblem(self.problem_size[1], self.problem_size[0])
@@ -304,8 +323,7 @@ class MoveToGPServer:
         vel_calculation.setOptions(options)
         Opt = np.zeros(self.problem_size[1])
         i = 0
-        precision = [0.03, 0.03, 0.03]
-        precision_o = 0.1
+        precision = 0.015
 
         # Config iai_naive_kinematics_sim, send commands
         clock = ProjectionClock()
@@ -336,13 +354,17 @@ class MoveToGPServer:
             vel_p.append(np.array(Opt[x+3]))
             high.append(np.array([self.ubA[9+x]/2]))
 
-        while np.any(limit_p > precision) or limit_o > precision_o:
+        while max(limit_p) > precision or not reached_orientation or not self.reach_pregrasp:
             # tic = rospy.get_rostime()
+            i += 1
             # Check if client cancelled goal
             if not self.active_goal_flag:
                 self.success = False
                 break
-            i += 1
+
+            if i > 500:
+                self.abort_goal('time_out')
+                break
 
             # Solve QP, redefine limit vectors of A.
             eef_pose_msg = Pose()
@@ -378,11 +400,11 @@ class MoveToGPServer:
             #    print '%s: %.3f'%(j, velocity_msg.velocity[n])
 
             # Recalculate Error in EEF position
-            error_posit, limit_p = self.calc_posit_error()
+            error_posit, limit_p = self.calc_posit_error(error_posit)
 
             # Recalculate Error in EEF orientation
             eef_orient = qo.rotation_to_quaternion(self.eef_pose.M)
-            error_orient, limit_o = self.calc_orient_error(eef_orient, self.goal_quat, 0.3, limit_p)
+            error_orient, reached_orientation = self.calc_orient_error(eef_orient, self.goal_quat, 0.35, limit_p)
 
             # Print velocity for iai_naive_kinematics_sim
             velocity_msg.header.stamp = rospy.get_rostime()
@@ -418,7 +440,7 @@ class MoveToGPServer:
                     error[x] = np.hstack((error[x], self.lbA[x]/self.prop_gain))
                 else:
                     # error[x] = np.hstack((error[x], self.lbA[x]/self.prop_gain_orient))
-                    # e = self.goal_orient - euler_from_quaternion(eef_orient)
+                    # e = self.goal_orient_euler - euler_from_quaternion(eef_orient)
                     e = error_orient
                     error[x] = np.hstack((error[x], e[x-3]))
             base_weight = np.hstack((base_weight, self.jweights[0, 0]))
@@ -439,7 +461,7 @@ class MoveToGPServer:
             print 'slack    : ', Opt[-6:]
             '''print 'eef_ori:   ', euler_from_quaternion(eef_orient)
             print 'ori error: ', error_orient
-            print 'goal_ori:  ', self.goal_orient
+            print 'goal_ori:  ', self.goal_orient_euler
             print '\neef error:  ', eef_posit
             print 'pos error:  ', error_posit/self.prop_gain
             print 'goal error: ', self.goal_posit

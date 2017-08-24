@@ -2,6 +2,7 @@
 
 # Goal
 geometry_msgs/TransformStamped grasping_pose
+geometry_msgs/TransformStamped pre_grasping
 string arm      # Do I need to specify the arm here??
 ---
 # Result

@@ -353,6 +353,16 @@ class SelectGoal:
             rospy.logerr("Can't calculate manipulability",e)
             return -1
 
+    def get_pre_grasping_pose(self, pose):
+        try:
+            pregrasp = self.tfBuffer.lookup_transform('odom', pose, rospy.Time(0), rospy.Duration(2, 5e8))
+
+        except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
+            rospy.logerr('No TF found between gripper and object. ', exc)
+            pregrasp = None
+
+        return pregrasp
+
     def yaml_writer(self):
         # Write a YAML file with the parameters for the simulated controller
         try:
@@ -378,6 +388,7 @@ class SelectGoal:
                 else:
                     arm = 'right'
                     joint_w_values.update({val: self.right_jnt_pos[n]})'''
+
             controlled_joint_names = self.urdf_model.get_chain('odom', self.frame_end, links=False, fixed=False)
             #data['controlled_joints'] = controlled_joint_names
             data['simulated_links'] = sim_links_names
@@ -431,9 +442,11 @@ class SelectGoal:
         self.gp_action.wait_for_server()
 
         if self.left_arm:
-            goal = MoveToGPGoal(grasping_pose=self.goal_pose, arm='left')
+            pregrasp = self.get_pre_grasping_pose('pre-'+self.goal_pose.child_frame_id)
+            goal = MoveToGPGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm='left')
         else:
-            goal = MoveToGPGoal(grasping_pose=self.goal_pose, arm='right')
+            pregrasp = self.get_pre_grasping_pose('pre-'+self.goal_pose.child_frame_id)
+            goal = MoveToGPGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm='right')
         self.gp_action.send_goal(goal, feedback_cb=self.action_feedback_cb)
         state_string = self.action_state_to_string()
 

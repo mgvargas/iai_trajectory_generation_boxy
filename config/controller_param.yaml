@@ -75,14 +75,13 @@ simulated_links:
 - left_gripper_base_link
 - left_gripper_tool_frame
 start_config:
-  left_arm_0_joint: -1.557
-  left_arm_1_joint: 0.8408
-  left_arm_2_joint: 0.0997
-  left_arm_3_joint: -1.4161
-  left_arm_4_joint: -2.251
-  left_arm_5_joint: -1.482
-  left_arm_6_joint: -2.324
-  neck_elbow_joint: -0.565377
+  left_arm_0_joint: -0.9615
+  left_arm_1_joint: 0.8983
+  left_arm_2_joint: -0.6097
+  left_arm_3_joint: -1.5235
+  left_arm_4_joint: -1.837
+  left_arm_5_joint: -1.6221
+  left_arm_6_joint: -2.48
   neck_shoulder_lift_joint: -3.0928
   neck_shoulder_pan_joint: -1.67144
   neck_wrist_1_joint: 1.23036
@@ -91,12 +90,12 @@ start_config:
   odom_x_joint: -1.5
   odom_y_joint: 0.5
   odom_z_joint: -0.07
-  right_arm_0_joint: 1.035431542036267
-  right_arm_1_joint: -0.6214144842664262
-  right_arm_2_joint: -2.5601793369348207
-  right_arm_3_joint: -1.4676542755818898
-  right_arm_4_joint: -1.2967314329570683
-  right_arm_5_joint: 1.85759378992942
-  right_arm_6_joint: -1.0270237084541678
+  right_arm_0_joint: 0.955
+  right_arm_1_joint: -0.591
+  right_arm_2_joint: -2.509
+  right_arm_3_joint: -1.457
+  right_arm_4_joint: -1.234
+  right_arm_5_joint: 1.804
+  right_arm_6_joint: -1.068
   triangle_base_joint: -0.31
 watchdog_period: 0.1
