@@ -58,9 +58,9 @@ class PlotTest:
             marker.ns = "marker_" + str(n)
             marker.type = marker.CUBE
             marker.action = marker.ADD
-            marker.scale.x = 0.03
-            marker.scale.y = 0.03
-            marker.scale.z = 0.03
+            marker.scale.x = 0.015
+            marker.scale.y = 0.015
+            marker.scale.z = 0.015
             marker.color.r = r
             marker.color.g = g
             marker.color.b = b
@@ -71,7 +71,7 @@ class PlotTest:
         #self.yaml_writer(markerArray)
         rospy.loginfo('Plotting EEF trajectory')
         self.marker_pub.publish(markerArray)
-        # print 'r, g, b', r, g, b
+
 
     @staticmethod
     def yaml_writer(markerArray):
