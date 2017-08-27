@@ -1,4 +1,4 @@
-arm: left
+arm: right
 controlled_joints:
 - odom_x_joint
 - odom_y_joint
@@ -18,7 +18,7 @@ controlled_joints:
 - right_arm_4_joint
 - right_arm_5_joint
 - right_arm_6_joint
-goal_pose_name: knorr_tomate_gp1
+goal_pose_name: bowl_gp2
 projection_mode: false
 sim_frequency: 100
 simulated_joints:
@@ -51,37 +51,37 @@ simulated_joints:
 simulated_links:
 - base_link
 - triangle_base_link
-- triangle_left_arm_link
-- calib_left_arm_base_link
-- left_arm_1_link
-- left_arm_2_link
-- left_arm_3_link
-- left_arm_4_link
-- left_arm_5_link
-- left_arm_6_link
-- left_arm_7_link
-- left_arm_flange_link
-- left_arm_cabling_adaptor_link
-- left_arm_adapter_iso50_kms40_frame_in
-- left_arm_adapter_iso50_kms40_frame_out
-- left_arm_kms40_frame_in
-- left_arm_kms40_frame_out
-- left_arm_adapter_kms40_fwk050_frame_in
-- left_arm_adapter_kms40_fwk050_frame_out
-- left_arm_fwk_fwa_050_frame_in
-- left_arm_fwk_fwa_050_frame_out
-- left_arm_adapter_fwa050_wsg50_frame_in
-- left_arm_adapter_fwa050_wsg50_frame_out
-- left_gripper_base_link
-- left_gripper_tool_frame
+- triangle_right_arm_link
+- calib_right_arm_base_link
+- right_arm_1_link
+- right_arm_2_link
+- right_arm_3_link
+- right_arm_4_link
+- right_arm_5_link
+- right_arm_6_link
+- right_arm_7_link
+- right_arm_flange_link
+- right_arm_cabling_adaptor_link
+- right_arm_adapter_iso50_kms40_frame_in
+- right_arm_adapter_iso50_kms40_frame_out
+- right_arm_kms40_frame_in
+- right_arm_kms40_frame_out
+- right_arm_adapter_kms40_fwk050_frame_in
+- right_arm_adapter_kms40_fwk050_frame_out
+- right_arm_fwk_fwa_050_frame_in
+- right_arm_fwk_fwa_050_frame_out
+- right_arm_adapter_fwa050_wsg50_frame_in
+- right_arm_adapter_fwa050_wsg50_frame_out
+- right_gripper_base_link
+- right_gripper_tool_frame
 start_config:
-  left_arm_0_joint: -0.9615
-  left_arm_1_joint: 0.8983
-  left_arm_2_joint: -0.6097
-  left_arm_3_joint: -1.5235
-  left_arm_4_joint: -1.837
-  left_arm_5_joint: -1.6221
-  left_arm_6_joint: -2.48
+  left_arm_0_joint: -1.0424206770318125
+  left_arm_1_joint: 0.7856426143571664
+  left_arm_2_joint: -0.6005778452870986
+  left_arm_3_joint: -1.664941382894658
+  left_arm_4_joint: -1.9399642647890991
+  left_arm_5_joint: -1.6535906309055022
+  left_arm_6_joint: -2.572054542448777
   neck_shoulder_lift_joint: -3.0928
   neck_shoulder_pan_joint: -1.67144
   neck_wrist_1_joint: 1.23036
@@ -90,12 +90,12 @@ start_config:
   odom_x_joint: -1.5
   odom_y_joint: 0.5
   odom_z_joint: -0.07
-  right_arm_0_joint: 0.955
-  right_arm_1_joint: -0.591
-  right_arm_2_joint: -2.509
-  right_arm_3_joint: -1.457
-  right_arm_4_joint: -1.234
-  right_arm_5_joint: 1.804
-  right_arm_6_joint: -1.068
+  right_arm_0_joint: 0.9318561286348706
+  right_arm_1_joint: -0.617115289630847
+  right_arm_2_joint: -2.5853490151650087
+  right_arm_3_joint: -1.5708929937611393
+  right_arm_4_joint: -1.3310840639433288
+  right_arm_5_joint: 1.7323502336223708
+  right_arm_6_joint: -0.9896413787705906
   triangle_base_joint: -0.31
 watchdog_period: 0.1

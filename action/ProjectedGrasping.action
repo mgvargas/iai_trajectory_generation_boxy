@@ -1,5 +1,6 @@
 # Goal
 string object
+int32 num_goals
 ---
 # Result
 iai_trajectory_generation_boxy/Trajectory selected_trajectory

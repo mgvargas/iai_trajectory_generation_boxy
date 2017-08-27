@@ -64,7 +64,8 @@ add_message_files(
 ## Generate actions in the 'action' folder
  add_action_files(
    FILES
-   MoveToGP.action
+   RequestTrajectory.action
+   GoToTwoPoses.action
    ProjectedGrasping.action
  )
 
@@ -72,6 +73,7 @@ add_message_files(
 generate_messages(
    DEPENDENCIES
    actionlib_msgs
+   geometry_msgs
    sensor_msgs
    std_msgs
  )

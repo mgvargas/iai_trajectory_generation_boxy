@@ -30,7 +30,7 @@ import test_plotter
 from actionlib_msgs.msg import GoalStatus
 from random import randrange
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingAction, ProjectedGraspingResult
-from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, MoveToGPAction, MoveToGPGoal
+from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, RequestTrajectoryAction, RequestTrajectoryGoal
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
 from iai_markers_tracking.msg import Object
 from iai_markers_tracking.srv import GetObjectInfo
@@ -45,7 +45,7 @@ class SelectGoal:
         self.objects = rospy.Subscriber('/found_objects', Object, self.callback_obj)
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
-        self.gp_action = actionlib.SimpleActionClient('move_to_gp', MoveToGPAction)
+        self.gp_action = actionlib.SimpleActionClient('request_trajectory', RequestTrajectoryAction)
 
         self.grasping_poses = []
         self.object_list = []
@@ -133,12 +133,14 @@ class SelectGoal:
         if len(self.grasping_poses) > 0:
             self.gp_weights = np.zeros(len(self.grasping_poses))
 
-    def object_grasping_poses(self, object):
+    def object_grasping_poses(self, object, num_goals):
+        self.num_goals = num_goals
         # From the found objects, select one to grasp
         for obj in self.object_list:
             if obj == object:
             # if obj == 'cup':
             # if obj == 'knorr_tomate':
+                self.obj = object
                 self.grasping_poses_service(obj)
 
         return self.grasping_poses
@@ -317,7 +319,7 @@ class SelectGoal:
                 jacobian = right_jac
 
         # print '\nweights: ', self.gp_weights
-        self.goal_pose = self.goal_pose_tf(closest_pose.child_frame_id)
+        self.goal_pose = self.get_goal_pose_tf(closest_pose.child_frame_id)
 
         self.kinem_chain(self.frame_end)
 
@@ -352,16 +354,6 @@ class SelectGoal:
         except ValueError as e:
             rospy.logerr("Can't calculate manipulability",e)
             return -1
-
-    def get_pre_grasping_pose(self, pose):
-        try:
-            pregrasp = self.tfBuffer.lookup_transform('odom', pose, rospy.Time(0), rospy.Duration(2, 5e8))
-
-        except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
-            rospy.logerr('No TF found between gripper and object. ', exc)
-            pregrasp = None
-
-        return pregrasp
 
     def yaml_writer(self):
         # Write a YAML file with the parameters for the simulated controller
@@ -406,7 +398,7 @@ class SelectGoal:
             rospy.logerr("Unexpected error while writing controller configuration YAML file:"), sys.exc_info()[0]
             return -1
 
-    def goal_pose_tf(self,pose):
+    def get_goal_pose_tf(self, pose):
         # Get TF between base and object's grasping pose
         try:
             # goal_pose = self.tfBuffer.lookup_transform(self.frame_base, pose, rospy.Time(0), rospy.Duration(1, 5e8))
@@ -442,19 +434,29 @@ class SelectGoal:
         self.gp_action.wait_for_server()
 
         if self.left_arm:
-            pregrasp = self.get_pre_grasping_pose('pre-'+self.goal_pose.child_frame_id)
-            goal = MoveToGPGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm='left')
+            arm='left'
         else:
-            pregrasp = self.get_pre_grasping_pose('pre-'+self.goal_pose.child_frame_id)
-            goal = MoveToGPGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm='right')
+            arm = 'right'
+        pregrasp = self.get_goal_pose_tf('pre-'+self.goal_pose.child_frame_id)
+        goal = RequestTrajectoryGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm=arm,
+                                         number_goals=self.num_goals)
+
+        if self.num_goals > 1:
+            chain, jacobian, new_pose = self.select_new_gp(self.goal_pose, self.obj)
+            second_goal = self.get_goal_pose_tf(new_pose.child_frame_id)
+            pregrasp2 = self.get_goal_pose_tf('pre-'+second_goal.child_frame_id)
+            goal = RequestTrajectoryGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp,
+                                         grasping_pose2=second_goal, pre_grasping2=pregrasp2, arm=arm,
+                                         number_goals=self.num_goals)
+
         self.gp_action.send_goal(goal, feedback_cb=self.action_feedback_cb)
         state_string = self.action_state_to_string()
 
-        rospy.loginfo('Sending goal to MoveToGP Action.')
+        rospy.loginfo('Sending goal to RequestTrajectory Action.')
         wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(10))
 
         if wait_for_result:
-            rospy.sleep(0.05)
+            rospy.sleep(0.08)
             state = state_string[self.gp_action.get_state()]
             rospy.loginfo('Action state: {}.'.format(state))
             if state =='SUCCEEDED':
@@ -498,11 +500,14 @@ class SelectGoal:
         if len(self.grasping_poses) > 1:
             print self.grasping_poses
             print 'remove',closest_pose.child_frame_id
-            self.grasping_poses.remove(closest_pose.child_frame_id)
+            try:
+                self.grasping_poses.remove(closest_pose.child_frame_id)
+            except ValueError:
+                pass
             new_pose = self.goal_by_distance()
             arm, jacobian = self.arm_selector(new_pose)
         else:
-            grasping_poses = self.object_grasping_poses(object_to_grasp)
+            grasping_poses = self.object_grasping_poses(object_to_grasp, self.num_goals)
             print grasping_poses
             # Change arm
             if self.left_arm:
@@ -541,7 +546,7 @@ class SelectGoal:
             self.gp_weights[self.elem] += 0.4
             closest_pose = self.trans[self.elem]
 
-            new_pose = self.goal_pose = self.goal_pose_tf(closest_pose.child_frame_id)
+            new_pose = self.goal_pose = self.get_goal_pose_tf(closest_pose.child_frame_id)
 
             self.kinem_chain(self.frame_end)
 
@@ -563,13 +568,15 @@ class ProjectedGraspingServer:
                                                     self.cancel_cb, auto_start=False)
         self.action_server.start()
         self.action_status = GoalStatus()
+        self.num_goals = 1
 
     def action_callback(self, cb):
         self.object_to_grasp = cb.goal.goal.object
+        self.num_goals = cb.goal.goal.num_goals
         print 'Object: ', self.object_to_grasp
         self.goal_received = True
         self.action_status.goal_id.id = cb.goal.goal_id.id
-        return self.object_to_grasp, self.goal_received
+        return self.object_to_grasp, self.goal_received, self.num_goals
 
     def cancel_cb(self, cb):
         self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id)
@@ -587,7 +594,7 @@ class ProjectedGraspingServer:
             self.action_server.publish_result(self.action_status, self.result)
             self.goal_received = False
             self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id)
-        return self.object_to_grasp, self.goal_received
+        return self.object_to_grasp, self.goal_received, self.num_goals
 
 
 def trajectory_evaluation_service(trajectories, manipulability):
@@ -605,14 +612,14 @@ def trajectory_evaluation_service(trajectories, manipulability):
 
 def request(receive_goal, projection_class, selected_trajectory):
     # Check if goal object has been received
-    (object_to_grasp, received) = receive_goal.send_trajectory(selected_trajectory)
+    (object_to_grasp, received, num_goals) = receive_goal.send_trajectory(selected_trajectory)
     selected_trajectory = False
 
     if received:
         received = False
 
         # Get list of grasping poses oj the object
-        projection_class.object_grasping_poses(object_to_grasp)
+        projection_class.object_grasping_poses(object_to_grasp, num_goals)
         # Init weights
         projection_class.init_gp_weights()
         # Find closest grasping pose
