@@ -3,9 +3,6 @@
 # Goal
 geometry_msgs/TransformStamped grasping_pose
 geometry_msgs/TransformStamped pre_grasping
-geometry_msgs/TransformStamped grasping_pose2
-geometry_msgs/TransformStamped pre_grasping2
-int32 number_goals
 string arm      # Do I need to specify the arm here??
 ---
 # Result

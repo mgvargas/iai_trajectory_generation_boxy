@@ -179,8 +179,10 @@ class MoveToGPServer:
         return 0
 
     def calc_posit_error(self, error_posit):
+        self.reach_position = False
         # Error threshold
         threshold = 0.02 * self.prop_gain
+        precision = 0.015
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
@@ -197,6 +199,9 @@ class MoveToGPServer:
             self.reach_pregrasp = True
             error_posit = (self.goal_posit - eef_posit) * self.prop_gain
         limit_p = [abs(x/self.prop_gain) for x in error_posit]
+        if max(limit_p) < precision:
+            self.reach_position = True
+
         return error_posit, limit_p
 
     def calc_orient_error(self, eef_orient, goal_orient, thresh, limit_p):
@@ -337,7 +342,6 @@ class MoveToGPServer:
         vel_calculation.setOptions(options)
         Opt = np.zeros(self.problem_size[1])
         i = 0
-        precision = 0.015
 
         # Config iai_naive_kinematics_sim, send commands
         clock = ProjectionClock()
@@ -368,7 +372,7 @@ class MoveToGPServer:
             vel_p.append(np.array(Opt[x+3]))
             high.append(np.array([self.ubA[9+x]/2]))'''
 
-        while max(limit_p) > precision or not reached_orientation or not self.reach_pregrasp:
+        while not self.reach_position or not reached_orientation or not self.reach_pregrasp:
             # tic = rospy.get_rostime()
             i += 1
             # Check if client cancelled goal
