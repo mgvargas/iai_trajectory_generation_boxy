@@ -65,7 +65,6 @@ add_message_files(
  add_action_files(
    FILES
    RequestTrajectory.action
-   GoToTwoPoses.action
    ProjectedGrasping.action
  )
 
