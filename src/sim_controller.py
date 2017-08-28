@@ -33,7 +33,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseArray, Pose
 from iai_naive_kinematics_sim.msg import ProjectionClock
-from iai_trajectory_generation_boxy.msg import MoveToGPAction, MoveToGPFeedback, MoveToGPResult
+from iai_trajectory_generation_boxy.msg import RequestTrajectoryAction, RequestTrajectoryResult, RequestTrajectoryFeedback
 from sensor_msgs.msg import JointState
 from tf.transformations import quaternion_slerp, quaternion_from_euler, euler_from_quaternion
 from urdf_parser_py.urdf import URDF
@@ -41,14 +41,14 @@ from urdf_parser_py.urdf import URDF
 from kdl_parser import kdl_tree_from_urdf_model
 
 
-class MoveToGPServer:
+class RequestTrajectoryServer:
 
     def __init__(self):
-        self._feedback = MoveToGPFeedback()
-        self._result = MoveToGPResult()
+        self._feedback = RequestTrajectoryFeedback()
+        self._result = RequestTrajectoryResult()
         self.goal_received = False
-        self._action_name = 'move_to_gp'
-        self.action_server = actionlib.ActionServer(self._action_name, MoveToGPAction, self.action_callback,
+        self._action_name = 'request_trajectory'
+        self.action_server = actionlib.ActionServer(self._action_name, RequestTrajectoryAction, self.action_callback,
                                                     self.cancel_cb, auto_start=False)
         self.action_server.start()
         self.action_status = GoalStatus()
@@ -730,9 +730,9 @@ class MoveToGPServer:
 
 def main():
     try:
-        rospy.init_node('move_to_gp_server')
+        rospy.init_node('request_trajectory_server')
         rospy.Rate(200)
-        a = MoveToGPServer()
+        a = RequestTrajectoryServer()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
