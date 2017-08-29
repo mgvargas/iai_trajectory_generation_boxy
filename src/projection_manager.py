@@ -222,8 +222,6 @@ class SelectGoal:
             self.name_frame_out = name_frame_end
             self.njoints = len(self.joint_names)
 
-            # rospy.loginfo("Will control the following joints: %s" %(self.joint_names))
-
             self.kdl_tree = kdl_tree_from_urdf_model(self.urdf_model)
             self.chain = self.kdl_tree.getChain(name_frame_base, name_frame_end)
             self.kdl_fk_solver = kdl.ChainFkSolverPos_recursive(self.chain)
@@ -581,13 +579,13 @@ class ProjectedGraspingServer:
         return self.object_to_grasp, self.goal_received
 
 
-def trajectory_evaluation_service(trajectories, manipulability):
+def trajectory_evaluation_service(trajectories, manipulability, object_to_grasp):
     # Calling a service that evaluates obtained trajectories and selects the best one
     rospy.wait_for_service('trajectory_evaluation')
     try:
         evaluate = rospy.ServiceProxy('trajectory_evaluation', TrajectoryEvaluation)
         print 'mani', manipulability
-        selected_traj = evaluate(trajectories, manipulability)
+        selected_traj = evaluate(trajectories, manipulability, object_to_grasp)
         return selected_traj
     except rospy.ServiceException, e:
         rospy.logerr("Service 'Trajectory Evaluation' call failed: %s" % e)
@@ -619,7 +617,7 @@ def request(receive_goal, projection_class, selected_trajectory):
         trajectories = []
         manipulability = []
         found_traj = 0
-        for x in range(5):
+        for x in range(1):
             # Plot EEF trajectory in RVIZ
             test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory, status = projection_class.call_gp_action()
@@ -637,7 +635,7 @@ def request(receive_goal, projection_class, selected_trajectory):
             reset_naive_sim.reset_simulator()
 
         if len(trajectories) > 0:
-            selected = trajectory_evaluation_service(trajectories, manipulability)
+            selected = trajectory_evaluation_service(trajectories, manipulability, object_to_grasp)
             if not selected is -1:
                 selected_trajectory = trajectories[selected.selected_trajectory]
                 rospy.loginfo(selected)

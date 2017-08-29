@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+    <param name="robot_description_semantic" textfile="$(find iai_trajectory_generation_boxy)/config/boxy.srdf"/>
+
+    <node pkg="iai_trajectory_generation_boxy" type="collision_checking"
+          name="collision_checking" output="screen">
+    </node>
+
+</launch>

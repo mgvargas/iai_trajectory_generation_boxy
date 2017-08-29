@@ -18,94 +18,123 @@
 
 import rospy
 import numpy as np
-from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
-
-def velocity_change(traj):
-    trajectory = traj.trajectory
-    joint_num = len(trajectory[0].velocity)
-    old_vel =  np.zeros(joint_num)
-    difference = []
-    i = 0
-    for x in trajectory:
-        vel = np.array(x.velocity)
-        difference.append(abs(old_vel - vel))
-        old_vel = vel
-        i += 1
-
-    acc_sum =  np.zeros(joint_num)
-
-    for step in difference:
-        for x,joint in enumerate(step):
-            acc_sum[x] += joint
-
-    accel_average = [x/i for x in acc_sum]
-    # Remove inactive joints
-    acc_active = [x for x in accel_average if x]
+from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation, CollisionEvaluation
+from visualization_msgs.msg import MarkerArray
 
 
-    return np.mean(acc_active),difference, i
+class TrajEvaluation:
+    def __init__(self):
+        # Variables
+        self.goal_obj = 'none'
 
+        rospy.Service('trajectory_evaluation', TrajectoryEvaluation, self.evaluation)
+        # Find objects. Subscribe to topic where detected objects are published.
+        rospy.Subscriber("visualization_marker_array", MarkerArray, self.marker_callback)
+        # Collision checking
+        rospy.wait_for_service('collision_evaluation')
+        self.collision_service = rospy.ServiceProxy('collision_evaluation', CollisionEvaluation)
 
-def acceleration_change(acceleration, iterat):
-    joint_num = len(acceleration[0])
-    jerk =  np.zeros(joint_num)
-    old_acc =  np.zeros(joint_num)
+    def marker_callback(self, msg):
+        self.obj_list = MarkerArray()
+        self.obj_names = []
 
-    difference = []
-    for acc in acceleration:
-        difference.append(abs(old_acc - acc))
-        old_acc = np.array(acc)
+        for obj in msg.markers:
+            # If marker is not a grasping pose
+            if 'gp' not in obj.ns:
+                if obj.ns not in self.obj_names and self.goal_obj != obj.ns:
+                    self.obj_names.append(obj.ns)
+                    self.obj_list.markers.append(obj)
 
-    for step in difference:
-        for x,joint in enumerate(step):
-            jerk[x] += joint
+    def velocity_change(self, traj):
+        trajectory = traj.trajectory
+        joint_num = len(trajectory[0].velocity)
+        old_vel = np.zeros(joint_num)
+        difference = []
+        i = 0
+        for x in trajectory:
+            vel = np.array(x.velocity)
+            difference.append(abs(old_vel - vel))
+            old_vel = vel
+            i += 1
 
-    jerk_average = [x/iterat for x in jerk]
-    jerk_active = [x for x in jerk_average if x]
+        acc_sum = np.zeros(joint_num)
 
-    return np.mean(jerk_active)
+        for step in difference:
+            for x, joint in enumerate(step):
+                acc_sum[x] += joint
 
+        accel_average = [x/i for x in acc_sum]
+        # Remove inactive joints
+        acc_active = [x for x in accel_average if x]
 
-def evaluation(request):
-    # Variable definition
-    num = len(request.trajectories)
-    manipulability = request.manipulability
-    acc_change = []
-    vel_change = []
-    length = []
-    grades = [0]*num
-    rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
+        return np.mean(acc_active), difference, i
 
-    # Calculate change in velocity, in acceleration and length of each trajectory
-    for trajectory in request.trajectories:
-        vel, acc, l = velocity_change(trajectory)
-        if vel:
-            vel_change.append(vel)
-            acc_change.append(acceleration_change(acc, l))
-            length.append(l)
+    def acceleration_change(self, acceleration, iterat):
+        joint_num = len(acceleration[0])
+        jerk = np.zeros(joint_num)
+        old_acc = np.zeros(joint_num)
 
-    '''print 'vel_change: ',vel_change
-    print 'acc_change: ',acc_change
-    print 'len: ',length'''
+        difference = []
+        for acc in acceleration:
+            difference.append(abs(old_acc - acc))
+            old_acc = np.array(acc)
 
-    min_vel = vel_change.index(min(vel_change))
-    min_acc = acc_change.index(min(acc_change))
-    min_length = length.index(min(length))
-    max_manip = manipulability.index(max(manipulability))
-    grades[min_vel] += 1
-    grades[min_acc] += 1
-    grades[min_length] += 1.5
-    grades[max_manip] += 2
-    selected_traj = grades.index(max(grades))
+        for step in difference:
+            for x, joint in enumerate(step):
+                jerk[x] += joint
 
-    rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
+        jerk_average = [x/iterat for x in jerk]
+        jerk_active = [x for x in jerk_average if x]
 
-    return selected_traj
+        return np.mean(jerk_active)
+
+    def evaluation(self, request):
+        # Variable definition
+        num = len(request.trajectories)
+        manipulability = request.manipulability
+        self.goal_obj = request.object_to_grasp
+        acc_change = []
+        vel_change = []
+        length = []
+        collision_dist = []
+        grades = [0]*num
+        rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
+
+        # Calculate change in velocity, in acceleration and length of each trajectory
+        for trajectory in request.trajectories:
+            vel, acc, l = self.velocity_change(trajectory)
+            if vel:
+                vel_change.append(vel)
+                acc_change.append(self.acceleration_change(acc, l))
+                length.append(l)
+            try:
+                dist = self.collision_service(trajectory, self.obj_list)
+                collision_dist.append(dist.min_collision_distance)
+            except rospy.ServiceException, e:
+                print "Service CollisionEvaluation call failed: %s" % e
+
+        '''print 'vel_change: ',vel_change
+        print 'acc_change: ',acc_change
+        print 'len: ',length'''
+
+        min_vel = vel_change.index(min(vel_change))
+        min_acc = acc_change.index(min(acc_change))
+        min_length = length.index(min(length))
+        max_manip = manipulability.index(max(manipulability))
+        grades[min_vel] += 1
+        grades[min_acc] += 1
+        grades[min_length] += 1.5
+        grades[max_manip] += 2
+        selected_traj = grades.index(max(grades))
+
+        rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
+
+        return selected_traj
 
 
 def evaluate_traj():
     rospy.init_node('trajectory_evaluation_server')
-    rospy.Service('trajectory_evaluation', TrajectoryEvaluation, evaluation)
+    TrajEvaluation()
     rospy.spin()
 
 

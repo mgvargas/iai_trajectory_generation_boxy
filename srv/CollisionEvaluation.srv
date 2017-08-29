@@ -1,0 +1,4 @@
+iai_trajectory_generation_boxy/Trajectory trajectory
+visualization_msgs/MarkerArray objects
+---
+int32 min_collision_distance
