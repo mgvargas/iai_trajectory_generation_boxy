@@ -30,20 +30,21 @@ class TrajEvaluation:
         rospy.Service('trajectory_evaluation', TrajectoryEvaluation, self.evaluation)
         # Find objects. Subscribe to topic where detected objects are published.
         rospy.Subscriber("visualization_marker_array", MarkerArray, self.marker_callback)
-        # Collision checking
-        rospy.wait_for_service('collision_evaluation')
-        self.collision_service = rospy.ServiceProxy('collision_evaluation', CollisionEvaluation)
 
     def marker_callback(self, msg):
-        self.obj_list = MarkerArray()
+        self.all_markers = msg
+
+    def select_objects(self):
+        obj_list = MarkerArray()
         self.obj_names = []
 
-        for obj in msg.markers:
+        for obj in self.all_markers.markers:
             # If marker is not a grasping pose
             if 'gp' not in obj.ns:
                 if obj.ns not in self.obj_names and self.goal_obj != obj.ns:
                     self.obj_names.append(obj.ns)
-                    self.obj_list.markers.append(obj)
+                    obj_list.markers.append(obj)
+        return obj_list
 
     def velocity_change(self, traj):
         trajectory = traj.trajectory
@@ -89,6 +90,11 @@ class TrajEvaluation:
         return np.mean(jerk_active)
 
     def evaluation(self, request):
+        # Collision checking
+        print 'Waiting for collision service'
+        rospy.wait_for_service('collision_evaluation')
+        self.collision_service = rospy.ServiceProxy('collision_evaluation', CollisionEvaluation)
+
         # Variable definition
         num = len(request.trajectories)
         manipulability = request.manipulability
@@ -107,8 +113,11 @@ class TrajEvaluation:
                 vel_change.append(vel)
                 acc_change.append(self.acceleration_change(acc, l))
                 length.append(l)
+            obj_list = self.select_objects()
+            print self.obj_names
+
             try:
-                dist = self.collision_service(trajectory, self.obj_list)
+                dist = self.collision_service(trajectory, obj_list)
                 collision_dist.append(dist.min_collision_distance)
             except rospy.ServiceException, e:
                 print "Service CollisionEvaluation call failed: %s" % e
@@ -126,6 +135,7 @@ class TrajEvaluation:
         grades[min_length] += 1.5
         grades[max_manip] += 2
         selected_traj = grades.index(max(grades))
+        rospy.loginfo('---- Collision Distance: {}'.format(collision_dist))
 
         rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
 

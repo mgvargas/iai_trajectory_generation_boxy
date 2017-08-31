@@ -9,25 +9,18 @@
     <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
     <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
     <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
-    <group name="right_arm">
-        <chain base_link="odom" tip_link="right_arm_adapter_fwa050_wsg50_frame_out" />
-    </group>
     <group name="left_arm">
-        <chain base_link="odom" tip_link="left_arm_adapter_fwa050_wsg50_frame_out" />
+        <chain base_link="odom" tip_link="left_gripper_tool_frame" />
+    </group>
+    <group name="right_arm">
+        <chain base_link="odom" tip_link="right_gripper_tool_frame" />
     </group>
     <group name="whole_robot">
-		  <chain base_link="odom" tip_link="right_arm_adapter_fwa050_wsg50_frame_out" />
-        <chain base_link="odom" tip_link="left_arm_adapter_fwa050_wsg50_frame_out" />
+        <group name="left_arm" />
+        <group name="right_arm" />
     </group>
-    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
-
-    <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="right_eef" parent_link="right_arm_adapter_fwa050_wsg50_frame_out" group="right_arm" />
-    <end_effector name="left_eef" parent_link="left_arm_adapter_fwa050_wsg50_frame_out" group="left_arm" />
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
-		<!-- =========================== CHANGE ============================== -->
-    <!--virtual_joint name="FixedBase" type="planar" parent_frame="world" child_link="map" /-->
-		<!--<virtual_joint name="FixedBase" type="planar" parent_frame="world" child_link="base_footprint" />-->
+    <virtual_joint name="virtual_joint" type="fixed" parent_frame="map" child_link="odom" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_footprint" link2="base_link" reason="Adjacent" />
     <disable_collisions link1="base_footprint" link2="calib_left_arm_base_link" reason="Never" />
@@ -111,14 +104,14 @@
     <disable_collisions link1="calib_left_arm_base_link" link2="left_arm_kms40_frame_in" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="left_wrist_optical_frame_x" reason="Never" />
+    <disable_collisions link1="calib_left_arm_base_link" link2="neck_adapter_ur3_frame_in" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="neck_base_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="neck_shoulder_link" reason="Never" />
+    <disable_collisions link1="calib_left_arm_base_link" link2="neck_upper_arm_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_1_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_2_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_3_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_4_link" reason="Never" />
-    <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_adapter_iso50_kms40_frame_in" reason="Never" />
-    <disable_collisions link1="calib_left_arm_base_link" link2="right_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="torso_base_link" reason="Never" />
     <disable_collisions link1="calib_left_arm_base_link" link2="triangle_base_link" reason="Adjacent" />
@@ -126,10 +119,13 @@
     <disable_collisions link1="calib_right_arm_base_link" link2="left_arm_2_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="left_arm_3_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="left_arm_4_link" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="left_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="left_wrist_optical_frame_x" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="neck_adapter_ur3_frame_in" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="neck_base_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="neck_shoulder_link" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="neck_upper_arm_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_arm_1_link" reason="Adjacent" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_arm_2_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_arm_3_link" reason="Never" />
@@ -144,7 +140,10 @@
     <disable_collisions link1="calib_right_arm_base_link" link2="right_arm_fwk_fwa_050_frame_in" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_arm_kms40_frame_in" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_gripper_base_link" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="right_gripper_finger_left_link" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="right_gripper_gripper_left_link" reason="Never" />
+    <disable_collisions link1="calib_right_arm_base_link" link2="right_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="torso_base_link" reason="Never" />
     <disable_collisions link1="calib_right_arm_base_link" link2="triangle_base_link" reason="Adjacent" />
@@ -152,6 +151,7 @@
     <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="left_wrist_optical_frame_x" reason="Never" />
     <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="neck_adapter_iso50_kinect2_frame_in" reason="Adjacent" />
     <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="neck_ee_link" reason="Never" />
+    <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="neck_wrist_1_link" reason="Never" />
     <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="neck_wrist_2_link" reason="Never" />
     <disable_collisions link1="head_mount_kinect2_rgb_optical_frame" link2="neck_wrist_3_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="left_arm_2_link" reason="Adjacent" />
@@ -173,8 +173,10 @@
     <disable_collisions link1="left_arm_1_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="left_wrist_optical_frame_x" reason="Never" />
+    <disable_collisions link1="left_arm_1_link" link2="neck_adapter_ur3_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="neck_base_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="neck_shoulder_link" reason="Never" />
+    <disable_collisions link1="left_arm_1_link" link2="neck_upper_arm_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="right_arm_1_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="right_arm_2_link" reason="Never" />
     <disable_collisions link1="left_arm_1_link" link2="right_arm_3_link" reason="Never" />
@@ -200,6 +202,7 @@
     <disable_collisions link1="left_arm_2_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_2_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_2_link" link2="left_wrist_optical_frame_x" reason="Never" />
+    <disable_collisions link1="left_arm_2_link" link2="neck_adapter_ur3_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_2_link" link2="neck_base_link" reason="Never" />
     <disable_collisions link1="left_arm_2_link" link2="neck_shoulder_link" reason="Never" />
     <disable_collisions link1="left_arm_2_link" link2="right_arm_1_link" reason="Never" />
@@ -260,7 +263,6 @@
     <disable_collisions link1="left_arm_5_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_5_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_5_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_5_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_arm_6_link" link2="left_arm_7_link" reason="Adjacent" />
     <disable_collisions link1="left_arm_6_link" link2="left_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_6_link" link2="left_arm_adapter_iso50_kms40_frame_in" reason="Never" />
@@ -275,7 +277,6 @@
     <disable_collisions link1="left_arm_6_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_6_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_6_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_6_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_arm_7_link" link2="left_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_7_link" link2="left_arm_adapter_iso50_kms40_frame_in" reason="Default" />
     <disable_collisions link1="left_arm_7_link" link2="left_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
@@ -289,7 +290,6 @@
     <disable_collisions link1="left_arm_7_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_7_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_7_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_7_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_arm_adapter_iso50_kms40_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_arm_cabling_adaptor_link" reason="Never" />
@@ -302,11 +302,9 @@
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_arm_cabling_adaptor_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_finger_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
+    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
+    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_fwa050_wsg50_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_arm_cabling_adaptor_link" reason="Adjacent" />
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_arm_fwk_fwa_050_frame_in" reason="Never" />
@@ -318,8 +316,9 @@
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="right_arm_adapter_iso50_kms40_frame_in" reason="Never" />
+    <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
+    <disable_collisions link1="left_arm_adapter_iso50_kms40_frame_in" link2="right_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="left_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="left_arm_fwk_fwa_050_frame_in" reason="Adjacent" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="left_arm_kms40_frame_in" reason="Adjacent" />
@@ -331,9 +330,7 @@
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="left_wrist_optical_frame_x" reason="Never" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_finger_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_arm_fwk_fwa_050_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_arm_kms40_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_gripper_base_link" reason="Never" />
@@ -343,9 +340,8 @@
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_cabling_adaptor_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_cabling_adaptor_link" link2="right_gripper_gripper_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_cabling_adaptor_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="left_arm_cabling_adaptor_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="left_arm_cabling_adaptor_link" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
+    <disable_collisions link1="left_arm_cabling_adaptor_link" link2="right_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_arm_kms40_frame_in" reason="Never" />
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_gripper_base_link" reason="Never" />
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_gripper_finger_left_link" reason="Never" />
@@ -354,10 +350,6 @@
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
-    <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
-    <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="left_arm_fwk_fwa_050_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_gripper_base_link" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_gripper_finger_right_link" reason="Never" />
@@ -365,60 +357,81 @@
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_arm_kms40_frame_in" link2="right_gripper_finger_left_link" reason="Never" />
+    <disable_collisions link1="left_arm_kms40_frame_in" link2="right_arm_cabling_adaptor_link" reason="Never" />
     <disable_collisions link1="left_arm_kms40_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_base_link" link2="left_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_base_link" link2="left_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_gripper_base_link" link2="left_gripper_gripper_left_link" reason="Adjacent" />
-    <disable_collisions link1="left_gripper_base_link" link2="left_gripper_gripper_right_link" reason="Adjacent" />
+    <disable_collisions link1="left_gripper_base_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_gripper_base_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_gripper_base_link" link2="left_wrist_optical_frame_x" reason="Adjacent" />
-    <disable_collisions link1="left_gripper_base_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_left_link" link2="left_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="left_gripper_gripper_left_link" reason="Adjacent" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="left_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_gripper_finger_left_link" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
-    <disable_collisions link1="left_gripper_finger_left_link" link2="right_gripper_finger_right_link" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_left_link" link2="neck_ee_link" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_left_link" link2="right_arm_kms40_frame_in" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_left_link" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_left_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="left_gripper_finger_left_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_right_link" link2="left_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_finger_right_link" link2="left_gripper_gripper_right_link" reason="Adjacent" />
     <disable_collisions link1="left_gripper_finger_right_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_gripper_finger_right_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_gripper_gripper_left_link" link2="left_gripper_gripper_right_link" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_right_link" link2="right_gripper_finger_right_link" reason="Never" />
+    <disable_collisions link1="left_gripper_finger_right_link" link2="right_gripper_gripper_right_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_left_link" link2="left_gripper_gripper_right_link" reason="Adjacent" />
     <disable_collisions link1="left_gripper_gripper_left_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_left_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_gripper_gripper_left_link" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_left_link" link2="neck_ee_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_left_link" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_left_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_left_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_left_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="left_gripper_gripper_left_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_right_link" link2="left_wrist_optical_frame" reason="Never" />
     <disable_collisions link1="left_gripper_gripper_right_link" link2="left_wrist_optical_frame_x" reason="Never" />
-    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
-    <disable_collisions link1="left_gripper_gripper_right_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_arm_7_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_arm_adapter_iso50_kms40_frame_in" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_arm_cabling_adaptor_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_gripper_finger_left_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_gripper_finger_right_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_gripper_gripper_left_link" reason="Never" />
+    <disable_collisions link1="left_gripper_gripper_right_link" link2="right_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="left_wrist_optical_frame_x" reason="Adjacent" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="neck_adapter_iso50_kinect2_frame_in" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="neck_ee_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_1_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_2_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_3_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_4_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_6_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_7_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_adapter_iso50_kms40_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_cabling_adaptor_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_fwk_fwa_050_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_arm_kms40_frame_in" reason="Never" />
-    <disable_collisions link1="left_wrist_optical_frame" link2="right_gripper_base_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="right_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="neck_adapter_iso50_kinect2_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="neck_ee_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_1_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_2_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_3_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_4_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_6_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_7_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_adapter_iso50_kms40_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_cabling_adaptor_link" reason="Never" />
+    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_fwk_fwa_050_frame_in" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_arm_kms40_frame_in" reason="Never" />
-    <disable_collisions link1="left_wrist_optical_frame_x" link2="right_gripper_base_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="left_wrist_optical_frame_x" link2="right_gripper_gripper_left_link" reason="Never" />
@@ -429,6 +442,7 @@
     <disable_collisions link1="neck_adapter_iso50_kinect2_frame_in" link2="neck_wrist_2_link" reason="Never" />
     <disable_collisions link1="neck_adapter_iso50_kinect2_frame_in" link2="neck_wrist_3_link" reason="Adjacent" />
     <disable_collisions link1="neck_adapter_ur3_frame_in" link2="neck_base_link" reason="Adjacent" />
+    <disable_collisions link1="neck_adapter_ur3_frame_in" link2="neck_shoulder_link" reason="Never" />
     <disable_collisions link1="neck_adapter_ur3_frame_in" link2="right_arm_1_link" reason="Never" />
     <disable_collisions link1="neck_adapter_ur3_frame_in" link2="right_arm_2_link" reason="Never" />
     <disable_collisions link1="neck_adapter_ur3_frame_in" link2="shoulder_kinect_link" reason="Never" />
@@ -443,8 +457,10 @@
     <disable_collisions link1="neck_ee_link" link2="neck_wrist_1_link" reason="Never" />
     <disable_collisions link1="neck_ee_link" link2="neck_wrist_2_link" reason="Never" />
     <disable_collisions link1="neck_ee_link" link2="neck_wrist_3_link" reason="Adjacent" />
-    <disable_collisions link1="neck_ee_link" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
-    <disable_collisions link1="neck_ee_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="neck_ee_link" link2="right_gripper_finger_left_link" reason="Never" />
+    <disable_collisions link1="neck_ee_link" link2="right_gripper_finger_right_link" reason="Never" />
+    <disable_collisions link1="neck_ee_link" link2="right_gripper_gripper_left_link" reason="Never" />
+    <disable_collisions link1="neck_ee_link" link2="right_gripper_gripper_right_link" reason="Never" />
     <disable_collisions link1="neck_forearm_link" link2="neck_upper_arm_link" reason="Adjacent" />
     <disable_collisions link1="neck_forearm_link" link2="neck_wrist_1_link" reason="Adjacent" />
     <disable_collisions link1="neck_forearm_link" link2="neck_wrist_2_link" reason="Never" />
@@ -456,6 +472,8 @@
     <disable_collisions link1="neck_shoulder_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="neck_shoulder_link" link2="torso_base_link" reason="Never" />
     <disable_collisions link1="neck_shoulder_link" link2="triangle_base_link" reason="Never" />
+    <disable_collisions link1="neck_upper_arm_link" link2="right_arm_1_link" reason="Never" />
+    <disable_collisions link1="neck_upper_arm_link" link2="triangle_base_link" reason="Never" />
     <disable_collisions link1="neck_wrist_1_link" link2="neck_wrist_2_link" reason="Adjacent" />
     <disable_collisions link1="neck_wrist_1_link" link2="neck_wrist_3_link" reason="Never" />
     <disable_collisions link1="neck_wrist_2_link" link2="neck_wrist_3_link" reason="Adjacent" />
@@ -495,7 +513,7 @@
     <disable_collisions link1="right_arm_2_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_2_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_2_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_arm_2_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="right_arm_2_link" link2="triangle_base_link" reason="Never" />
     <disable_collisions link1="right_arm_3_link" link2="right_arm_4_link" reason="Adjacent" />
     <disable_collisions link1="right_arm_3_link" link2="right_arm_5_link" reason="Never" />
     <disable_collisions link1="right_arm_3_link" link2="right_arm_6_link" reason="Never" />
@@ -511,6 +529,7 @@
     <disable_collisions link1="right_arm_3_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_3_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_3_link" link2="right_gripper_gripper_right_link" reason="Never" />
+    <disable_collisions link1="right_arm_3_link" link2="triangle_base_link" reason="Never" />
     <disable_collisions link1="right_arm_4_link" link2="right_arm_5_link" reason="Adjacent" />
     <disable_collisions link1="right_arm_4_link" link2="right_arm_6_link" reason="Never" />
     <disable_collisions link1="right_arm_4_link" link2="right_arm_7_link" reason="Never" />
@@ -525,6 +544,7 @@
     <disable_collisions link1="right_arm_4_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_4_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_4_link" link2="right_gripper_gripper_right_link" reason="Never" />
+    <disable_collisions link1="right_arm_4_link" link2="triangle_base_link" reason="Never" />
     <disable_collisions link1="right_arm_5_link" link2="right_arm_6_link" reason="Adjacent" />
     <disable_collisions link1="right_arm_5_link" link2="right_arm_7_link" reason="Default" />
     <disable_collisions link1="right_arm_5_link" link2="right_arm_adapter_fwa050_wsg50_frame_in" reason="Never" />
@@ -570,7 +590,6 @@
     <disable_collisions link1="right_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_adapter_fwa050_wsg50_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_arm_adapter_fwa050_wsg50_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="right_arm_adapter_iso50_kms40_frame_in" link2="right_arm_adapter_kms40_fwk050_frame_in" reason="Never" />
     <disable_collisions link1="right_arm_adapter_iso50_kms40_frame_in" link2="right_arm_cabling_adaptor_link" reason="Adjacent" />
     <disable_collisions link1="right_arm_adapter_iso50_kms40_frame_in" link2="right_arm_fwk_fwa_050_frame_in" reason="Never" />
@@ -588,7 +607,6 @@
     <disable_collisions link1="right_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_adapter_kms40_fwk050_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_arm_adapter_kms40_fwk050_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="right_arm_cabling_adaptor_link" link2="right_arm_fwk_fwa_050_frame_in" reason="Never" />
     <disable_collisions link1="right_arm_cabling_adaptor_link" link2="right_arm_kms40_frame_in" reason="Never" />
     <disable_collisions link1="right_arm_cabling_adaptor_link" link2="right_gripper_base_link" reason="Never" />
@@ -602,26 +620,21 @@
     <disable_collisions link1="right_arm_fwk_fwa_050_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_fwk_fwa_050_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_fwk_fwa_050_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_arm_fwk_fwa_050_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="right_arm_kms40_frame_in" link2="right_gripper_base_link" reason="Never" />
     <disable_collisions link1="right_arm_kms40_frame_in" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="right_arm_kms40_frame_in" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_arm_kms40_frame_in" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_arm_kms40_frame_in" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_arm_kms40_frame_in" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="right_gripper_base_link" link2="right_gripper_finger_left_link" reason="Never" />
     <disable_collisions link1="right_gripper_base_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_gripper_base_link" link2="right_gripper_gripper_left_link" reason="Adjacent" />
-    <disable_collisions link1="right_gripper_base_link" link2="right_gripper_gripper_right_link" reason="Adjacent" />
+    <disable_collisions link1="right_gripper_base_link" link2="right_gripper_gripper_right_link" reason="Never" />
+    <disable_collisions link1="right_gripper_finger_left_link" link2="right_gripper_finger_right_link" reason="Never" />
     <disable_collisions link1="right_gripper_finger_left_link" link2="right_gripper_gripper_left_link" reason="Adjacent" />
     <disable_collisions link1="right_gripper_finger_left_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_gripper_finger_left_link" link2="shoulder_kinect_link" reason="Never" />
     <disable_collisions link1="right_gripper_finger_right_link" link2="right_gripper_gripper_left_link" reason="Never" />
     <disable_collisions link1="right_gripper_finger_right_link" link2="right_gripper_gripper_right_link" reason="Adjacent" />
-    <disable_collisions link1="right_gripper_finger_right_link" link2="shoulder_kinect_link" reason="Never" />
-    <disable_collisions link1="right_gripper_gripper_left_link" link2="right_gripper_gripper_right_link" reason="Never" />
-    <disable_collisions link1="right_gripper_gripper_left_link" link2="shoulder_kinect_link" reason="Never" />
-    <disable_collisions link1="right_gripper_gripper_right_link" link2="shoulder_kinect_link" reason="Never" />
+    <disable_collisions link1="right_gripper_gripper_left_link" link2="right_gripper_gripper_right_link" reason="Adjacent" />
     <disable_collisions link1="shoulder_kinect_link" link2="torso_base_link" reason="Never" />
     <disable_collisions link1="shoulder_kinect_link" link2="triangle_base_link" reason="Never" />
     <disable_collisions link1="torso_base_link" link2="triangle_base_link" reason="Default" />
