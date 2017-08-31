@@ -3,3 +3,4 @@
 test_plot_data/**
 src/html/**
 *.pyc
+CollisionCheck/**

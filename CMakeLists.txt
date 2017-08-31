@@ -11,6 +11,7 @@ project(iai_trajectory_generation_boxy)
 find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs actionlib
   rospy roscpp
+  tf
   message_generation
   sensor_msgs
   std_msgs
