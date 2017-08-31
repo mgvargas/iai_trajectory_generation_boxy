@@ -192,7 +192,7 @@ class RequestTrajectoryServer:
             error_posit = (self.pregrasp_posit - eef_posit) * self.prop_gain
             # At the beginning, move a bit more so that arm has better manipulability (center robot in front of object)
             if self.far and self.offset_direction:
-                print '------------- add error: ', error_posit/self.prop_gain
+                # print '------------- add error: ', error_posit/self.prop_gain
                 error_posit[1] += self.offset_direction * 0.1 * self.prop_gain
 
         else:
@@ -472,11 +472,11 @@ class RequestTrajectoryServer:
 
             self.success = True
 
-            print '\n iter: ', i
+            #print '\n iter: ', i
             # toc = rospy.get_rostime()
             # print (toc.nsecs-tic.nsecs)/10e9, 'sec Elapsed'
             #print 'joint_vel: ', Opt[:-6]
-            print 'error pos: ', error_posit / self.prop_gain
+            #print 'error pos: ', error_posit / self.prop_gain
             #print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
             # print 'slack    : ', Opt[-6:]
             '''print 'eef_ori:   ', euler_from_quaternion(eef_orient)
@@ -686,7 +686,7 @@ class RequestTrajectoryServer:
 
         # Weights will go from 0.01 to 10, depending on the distance to the goal
         elif a < dist < b:
-            print 'middle'
+            # print 'middle'
             for x in range(size_jac[0]):
                 for y in range(size_jac[1]):
                     self.A[x, y] = self.jacobian[x, y]
@@ -701,7 +701,7 @@ class RequestTrajectoryServer:
 
         # if the robot is close to the goal
         else:
-            print 'close'
+            # print 'close'
             for x in range(size_jac[0]):
                 for y in range(size_jac[1]):
                     self.A[x, y] = self.jacobian[x, y]
