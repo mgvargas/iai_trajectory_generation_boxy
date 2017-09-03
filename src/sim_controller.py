@@ -37,7 +37,6 @@ from iai_trajectory_generation_boxy.msg import RequestTrajectoryAction, RequestT
 from sensor_msgs.msg import JointState
 from tf.transformations import quaternion_slerp, quaternion_from_euler, euler_from_quaternion
 from urdf_parser_py.urdf import URDF
-
 from kdl_parser import kdl_tree_from_urdf_model
 
 
@@ -152,6 +151,7 @@ class RequestTrajectoryServer:
         self.success = False
         rospy.logwarn('Action cancelled by client.')
         self._result.trajectory = self._feedback.sim_trajectory
+        self._result.trajectory_length = self.trajectory_length
         self.action_server.publish_result(self.action_status, self._result)
         self.action_server.publish_status()
         return 0
@@ -171,6 +171,7 @@ class RequestTrajectoryServer:
 
             if self.success:
                 self._result.trajectory = self._feedback.sim_trajectory
+                self._result.trajectory_length = self.trajectory_length
                 rospy.loginfo('Action %s: Succeeded' % self._action_name)
                 self.action_status.status = 3
                 self.action_server.publish_result(self.action_status, self._result)
@@ -333,6 +334,8 @@ class RequestTrajectoryServer:
         limit_p = [abs(x) for x in error_posit]
         eef_pose_array = PoseArray()
         reached_orientation = False
+        self.trajectory_length = 0.0
+        self.old_dist = 0.0
 
         # Setting up QProblem object
         vel_calculation = SQProblem(self.problem_size[1], self.problem_size[0])
@@ -428,6 +431,9 @@ class RequestTrajectoryServer:
             eef_orient = qo.rotation_to_quaternion(self.eef_pose.M)
             error_orient, reached_orientation = self.calc_orient_error(eef_orient, self.goal_quat, 0.35, limit_p)
 
+            # Get trajectory length
+            self.trajectory_length = self.get_trajectory_length(self.eef_pose.p, self.trajectory_length)
+
             # Print velocity for iai_naive_kinematics_sim
             velocity_msg.header.stamp = rospy.get_rostime()
             self.pub_velocity.publish(velocity_msg)
@@ -438,6 +444,7 @@ class RequestTrajectoryServer:
             self.action_status.status = 1
             self._feedback.sim_status = self.action_status.text = 'Calculating trajectory'
             self._feedback.sim_trajectory.append(self.current_state)
+            self._feedback.trajectory_length = self.trajectory_length
             self.action_server.publish_feedback(self.action_status, self._feedback)
             self.action_server.publish_status()
 
@@ -555,6 +562,7 @@ class RequestTrajectoryServer:
             rospy.logerr('Action %s aborted due to infeasibility of QP problem' % self._action_name)
         self.action_server.publish_status()
         self._result.trajectory = self._feedback.sim_trajectory
+        self._result.trajectory_length = self.trajectory_length
         self.action_server.publish_result(self.action_status, self._result)
 
         self.active_goal_flag = False
@@ -726,6 +734,12 @@ class RequestTrajectoryServer:
         print '-- Base weight: [%.4f, %.4f] \n--  Triangle [%.4f] Arm weight: [%.4f]'\
               %(jweights[0], jweights[1], jweights[3], jweights[4])
         print '-- Slack weight: [%.2f, %.2f]'%(self.sweights[0], self.sweights[3])'''
+
+    def get_trajectory_length(self, eef_position, trajectory_length):
+        dist = sqrt(pow(eef_position[0],2) + pow(eef_position[1],2) + pow(eef_position[2],2))
+        trajectory_length += abs(dist - self.old_dist)
+        self.old_dist = dist
+        return trajectory_length
 
 
 def main():

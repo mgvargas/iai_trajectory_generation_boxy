@@ -26,7 +26,6 @@
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/planning_scene/planning_scene.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <iai_trajectory_generation_boxy/CollisionEvaluation.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <geometric_shapes/shape_operations.h>
@@ -100,8 +99,6 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
     robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
     planning_scene::PlanningScene planning_scene(kinematic_model);
 
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-
     collision_detection::CollisionRequest collision_request;
     collision_detection::CollisionResult collision_result;
     collision_detection::AllowedCollisionMatrix acm = planning_scene.getAllowedCollisionMatrix();
@@ -112,7 +109,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
 
     //Get position of /odom wrt /map
     geometry_msgs::TransformStamped map_transform;
-    map_transform = get_tf("/odom", "map");
+    map_transform = get_tf("/odom", "/map");
     planning_scene.getTransformsNonConst().setTransform(map_transform);
 
     // Set transform from '/camera_optical_frame' to '/map'.
@@ -145,9 +142,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         object_ids.push_back(collision_object.id);
         planning_scene.processCollisionObjectMsg(collision_object);
     }
-    cout << "Adding collision objects" << endl;
-
-    planning_scene_interface.addCollisionObjects(collision_objects_vector); // For visualization, remove later
+    ROS_INFO("Adding collision objects");
 
     // Checking for collisions
     bool state_validity;
@@ -169,25 +164,30 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         collision_found = collision_result.collision;
         if (collision_found == false){
             distance = planning_scene.distanceToCollision(current_state);
-            cout << "distance" << distance << endl;
+            //cout << "distance" << distance << endl;
             if (distance < min_collision){
                 min_collision = distance;
             }
         }
+        if (collision_found == true){
+            min_collision = -1;
+            ROS_INFO("Collision found, discarding trajectory.");
+            break;
+        }
         collision_result.clear();
         state_validity = planning_scene.isStateValid(current_state, "whole_robot", false);
+        // Get EEF position
+
     }
-    //cout << current_state << endl << endl;
 
     // Remove objects from the scene
-    planning_scene_interface.removeCollisionObjects(object_ids);
     moveit_msgs::CollisionObject remove_objects;
     remove_objects.operation =  remove_objects.REMOVE;
     planning_scene.processCollisionObjectMsg(remove_objects);
 
     // Send back service answer
     res.min_collision_distance = min_collision;
-    cout << "min distance " << min_collision << endl << endl;
+    cout << "Min distance to collision; " << min_collision << endl << endl;
 
     return true;
 }

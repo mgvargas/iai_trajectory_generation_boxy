@@ -6,8 +6,10 @@ geometry_msgs/TransformStamped pre_grasping
 string arm      # Do I need to specify the arm here??
 ---
 # Result
-sensor_msgs/JointState[] trajectory 
+sensor_msgs/JointState[] trajectory
+float32 trajectory_length
 ---
 # Feedback
 string sim_status
 sensor_msgs/JointState[] sim_trajectory
+float32 trajectory_length

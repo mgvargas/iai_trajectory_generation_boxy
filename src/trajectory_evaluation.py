@@ -99,22 +99,22 @@ class TrajEvaluation:
         num = len(request.trajectories)
         manipulability = request.manipulability
         self.goal_obj = request.object_to_grasp
+        print 'length: ', request.trajectories_length
         acc_change = []
         vel_change = []
-        length = []
+        iter = []
         collision_dist = []
         grades = [0]*num
         rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
 
-        # Calculate change in velocity, in acceleration and length of each trajectory
+        # Calculate change in velocity, in acceleration and iter of each trajectory
         for trajectory in request.trajectories:
             vel, acc, l = self.velocity_change(trajectory)
             if vel:
                 vel_change.append(vel)
                 acc_change.append(self.acceleration_change(acc, l))
-                length.append(l)
+                iter.append(l)
             obj_list = self.select_objects()
-            print self.obj_names
 
             try:
                 dist = self.collision_service(trajectory, obj_list)
@@ -124,11 +124,11 @@ class TrajEvaluation:
 
         '''print 'vel_change: ',vel_change
         print 'acc_change: ',acc_change
-        print 'len: ',length'''
+        print 'len: ',iter'''
 
         min_vel = vel_change.index(min(vel_change))
         min_acc = acc_change.index(min(acc_change))
-        min_length = length.index(min(length))
+        min_length = iter.index(min(iter))
         max_manip = manipulability.index(max(manipulability))
         grades[min_vel] += 1
         grades[min_acc] += 1
