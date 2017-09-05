@@ -17,6 +17,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import rospy
+import rospkg
 import numpy as np
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation, CollisionEvaluation
 from visualization_msgs.msg import MarkerArray
@@ -35,6 +36,7 @@ class TrajEvaluation:
         self.all_markers = msg
 
     def select_objects(self):
+        # Selects objects to send to the collision checking
         obj_list = MarkerArray()
         self.obj_names = []
 
@@ -89,6 +91,51 @@ class TrajEvaluation:
 
         return np.mean(jerk_active)
 
+    def get_score(self,traj_length, vel_change, acc_change, collision_dist, manipulability):
+        # Variables
+        num_traj = len(traj_length)
+        max_length = 4.0
+        max_acc_change = 0.007
+        max_vel_change = 0.01
+        min_collision_distance = 0.01
+        max_manip = 0.3
+        # Weights
+        w_acc = 1.0
+        w_vel = 1.0
+        w_length = 1.0
+        w_collision = 0.1
+        w_man = 1
+        score = []
+        text_line = []
+
+        for n,traj in enumerate(traj_length):
+            if collision_dist[n] == -1:  # If collision
+                score.append(100)
+                text_line.append('& \multicolumn{6}{c|}{Collision Found} \ \n')
+            else:
+                score.append(w_length * traj / max_length + w_vel * vel_change[n] / max_vel_change \
+                             + w_acc * acc_change[n] / max_acc_change \
+                             + w_collision * collision_dist[n] / min_collision_distance
+                             + w_man *( max_manip - manipulability[n]))
+                text_line.append( '& ' + str(round(traj*100,2)) + ' & ' + str(round(vel_change[n],3)) + ' & '
+                                  + str(round(acc_change[n],3)) + ' & ' + str(round(collision_dist[n]*100,2)) +
+                                  ' & ' + str(round(manipulability[n],3)) + ' & '
+                                  + str(round(score[n],3)) + ' \ \n')
+
+        for x in range(5-num_traj):
+            text_line.append('& \multicolumn{6}{c|}{Trajectory failed} \ \n')
+
+        pack = rospkg.RosPack()
+        dir = pack.get_path('iai_trajectory_generation_boxy') + '/test_scores/scores.tex'
+        text_start = '\multirow{5}{1.5cm}{' + self.goal_obj + '}'
+        with open(dir, 'a') as f:
+            f.write(text_start)
+            for line in text_line:
+                f.write(line)
+            f.write('\hline')
+
+        return score
+
     def evaluation(self, request):
         # Collision checking
         print 'Waiting for collision service'
@@ -96,15 +143,12 @@ class TrajEvaluation:
         self.collision_service = rospy.ServiceProxy('collision_evaluation', CollisionEvaluation)
 
         # Variable definition
-        num = len(request.trajectories)
         manipulability = request.manipulability
         self.goal_obj = request.object_to_grasp
-        print 'length: ', request.trajectories_length
+        traj_length  = request.trajectories_length
         acc_change = []
         vel_change = []
-        iter = []
         collision_dist = []
-        grades = [0]*num
         rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
 
         # Calculate change in velocity, in acceleration and iter of each trajectory
@@ -113,7 +157,6 @@ class TrajEvaluation:
             if vel:
                 vel_change.append(vel)
                 acc_change.append(self.acceleration_change(acc, l))
-                iter.append(l)
             obj_list = self.select_objects()
 
             try:
@@ -122,24 +165,17 @@ class TrajEvaluation:
             except rospy.ServiceException, e:
                 print "Service CollisionEvaluation call failed: %s" % e
 
-        '''print 'vel_change: ',vel_change
-        print 'acc_change: ',acc_change
-        print 'len: ',iter'''
+        scores = self.get_score(traj_length, vel_change, acc_change, collision_dist, manipulability)
 
-        min_vel = vel_change.index(min(vel_change))
-        min_acc = acc_change.index(min(acc_change))
-        min_length = iter.index(min(iter))
-        max_manip = manipulability.index(max(manipulability))
-        grades[min_vel] += 1
-        grades[min_acc] += 1
-        grades[min_length] += 1.5
-        grades[max_manip] += 2
-        selected_traj = grades.index(max(grades))
-        rospy.loginfo('---- Collision Distance: {}'.format(collision_dist))
-
-        rospy.loginfo('Service TrajectoryEvaluation: Selected trajectory: {}'.format(selected_traj))
-
-        return selected_traj
+        print 'scores; ',scores
+        if min(scores) == 100:
+            rospy.loginfo('Service TrajectoryEvaluation: No trajectory without collision was found')
+            return None
+        else:
+            selected_traj = scores.index(min(scores))
+            rospy.loginfo(
+                'Service TrajectoryEvaluation: Selected trajectory: {}, Score: {}'.format(selected_traj, min(scores)))
+            return selected_traj
 
 
 def evaluate_traj():
