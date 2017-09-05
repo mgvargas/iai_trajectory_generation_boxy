@@ -18,7 +18,7 @@ controlled_joints:
 - right_arm_4_joint
 - right_arm_5_joint
 - right_arm_6_joint
-goal_pose_name: bowl_gp2
+goal_pose_name: knorr_tomate_gp3
 projection_mode: false
 sim_frequency: 100
 simulated_joints:
@@ -87,8 +87,8 @@ start_config:
   neck_wrist_1_joint: 1.23036
   neck_wrist_2_joint: 1.54493
   neck_wrist_3_joint: 0.04506
-  odom_x_joint: -1.5
-  odom_y_joint: 0.5
+  odom_x_joint: -1.8
+  odom_y_joint: -0.2
   odom_z_joint: -0.07
   right_arm_0_joint: 0.9318561286348706
   right_arm_1_joint: -0.617115289630847

@@ -619,7 +619,7 @@ def request(receive_goal, projection_class, selected_trajectory):
         trajectories_length = []
         manipulability = []
         found_traj = 0
-        for x in range(1):
+        for x in range(5):
             # Plot EEF trajectory in RVIZ
             test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory_projection, status = projection_class.call_gp_action()
@@ -628,7 +628,7 @@ def request(receive_goal, projection_class, selected_trajectory):
                 trajectories.append(trajectory_projection)
                 trajectories_length.append(trajectory_projection.trajectory_length)
                 found_traj += 1
-                if found_traj >= 2: # If trajectory succeded twice for that GP, try next one
+                if found_traj >= 2:  # If trajectory succeded twice for that GP, try next one
                     arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
             else:
                 # IF trajectory failed, choose next grasping pose

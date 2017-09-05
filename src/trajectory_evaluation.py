@@ -170,7 +170,7 @@ class TrajEvaluation:
         print 'scores; ',scores
         if min(scores) == 100:
             rospy.loginfo('Service TrajectoryEvaluation: No trajectory without collision was found')
-            return None
+            return -1
         else:
             selected_traj = scores.index(min(scores))
             rospy.loginfo(

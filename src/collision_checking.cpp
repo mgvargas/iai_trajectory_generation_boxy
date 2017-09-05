@@ -54,16 +54,6 @@ geometry_msgs::TransformStamped get_tf(string destination_frame, string origin_f
     g_transform.transform.rotation.z = transform.getRotation().x();
     g_transform.transform.rotation.w = transform.getRotation().x();
 
-    /*tf2_ros::Buffer tfBuffer;
-    tf2_ros::TransformListener tfListener(tfBuffer);
-    try{
-       g_transform = tfBuffer.lookupTransform(destination_frame, origin_frame,
-                                   ros::Time(0));
-    }
-    catch (tf2::TransformException &ex) {
-       ROS_WARN("%s",ex.what());
-    }*/
-
     return g_transform;
 }
 
@@ -142,7 +132,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         object_ids.push_back(collision_object.id);
         planning_scene.processCollisionObjectMsg(collision_object);
     }
-    ROS_INFO("Adding collision objects");
+    ROS_INFO("Service CollisionChecking: Adding collision objects");
 
     // Checking for collisions
     bool state_validity;
@@ -158,7 +148,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         for(int x=0; x<num_of_joints; x=x+1){
                joint_state[joint_names[x]] = joint_values[x];
         }
-        current_state.setJointGroupPositions(joint_model_group, joint_values);
+        //current_state.setJointGroupPositions(joint_model_group, joint_values);
         current_state.setVariablePositions(joint_state);
         planning_scene.checkCollision(collision_request, collision_result, current_state, acm);
         collision_found = collision_result.collision;
@@ -171,13 +161,11 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         }
         if (collision_found == true){
             min_collision = -1;
-            ROS_INFO("Collision found, discarding trajectory.");
+            ROS_INFO("Service CollisionChecking: Collision found, discarding trajectory.");
             break;
         }
         collision_result.clear();
-        state_validity = planning_scene.isStateValid(current_state, "whole_robot", false);
-        // Get EEF position
-
+        //state_validity = planning_scene.isStateValid(current_state, "whole_robot", false);
     }
 
     // Remove objects from the scene

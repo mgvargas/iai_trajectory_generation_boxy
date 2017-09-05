@@ -151,7 +151,6 @@ class RequestTrajectoryServer:
         self.success = False
         rospy.logwarn('Action cancelled by client.')
         self._result.trajectory = self._feedback.sim_trajectory
-        self._result.trajectory_length = self.trajectory_length
         self.action_server.publish_result(self.action_status, self._result)
         self.action_server.publish_status()
         return 0
@@ -562,7 +561,6 @@ class RequestTrajectoryServer:
             rospy.logerr('Action %s aborted due to infeasibility of QP problem' % self._action_name)
         self.action_server.publish_status()
         self._result.trajectory = self._feedback.sim_trajectory
-        self._result.trajectory_length = self.trajectory_length
         self.action_server.publish_result(self.action_status, self._result)
 
         self.active_goal_flag = False
