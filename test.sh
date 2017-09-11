@@ -7,7 +7,7 @@ ID='HI'
 cd ~/obj_grasp_ws/src/iai_trajectory_generation_boxy/src
 i=0
 
-for VAR in {0..6}
+for VAR in {0..7}
 do
     echo "Setting initial robot config " $VAR
     python set_initial_pose.py $VAR
@@ -32,7 +32,7 @@ goal_id:
   id: $OBJID
 goal:
   object: "$OBJ
-        sleep 2m
+        sleep 1.5m
     done
     #pkill roslaunch
 done
