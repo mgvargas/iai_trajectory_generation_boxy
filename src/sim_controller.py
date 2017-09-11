@@ -29,6 +29,8 @@ import actionlib
 # Plot for debugging
 import plotly.offline
 import plotly.graph_objs as go
+from matplotlib2tikz import save as tikz_save
+import matplotlib.pyplot as plt
 import rospy
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseArray, Pose
@@ -64,8 +66,8 @@ class RequestTrajectoryServer:
         self.eef_pose = kdl.Frame()
         self.far = False
         # TODO: find appropriate max acceleration
-        #self.accel_max = np.array([0.3, 0.3, 0.3, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
-        self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
+        self.accel_max = np.array([0.3, 0.3, 0.3, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
+        #self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
 
         rospy.Subscriber('/joint_states', JointState, self.joint_callback)
         self.pub_clock = rospy.Publisher('/simulator/projection_clock', ProjectionClock, queue_size=3)
@@ -227,11 +229,7 @@ class RequestTrajectoryServer:
         x_y_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2))
         if x_y_error < precision_o and  error_orient[2] < z_threshold:
             reached_orientation = True
-        '''print 'eef_ori:   ', euler_from_quaternion(eef_orient)
-        print 'slerp:     ', euler_from_quaternion(slerp)
-        print 'goal_ori:  ', self.goal_orient_euler
-        print 'ori error: ', error_orient
-        print 'scale ', scaling'''
+
         return error_orient, reached_orientation
 
     def qpoases_config(self):
@@ -247,7 +245,7 @@ class RequestTrajectoryServer:
         # Variables
         slack_limit = 400
         self.n_slack = 6
-        self.prop_gain = 3
+        self.prop_gain = 4
         self.prop_gain_orient = 1.5
         self.sweights = np.ones((self.n_slack))*4
 
@@ -356,7 +354,7 @@ class RequestTrajectoryServer:
         velocity_msg.effort = effort_array
         velocity_msg.position = effort_array
         clock.now = rospy.get_rostime()
-        clock.period.nsecs = 10000000
+        clock.period.nsecs = 1000000
         self.pub_clock.publish(clock)
 
         # Plot for debugging
@@ -366,16 +364,16 @@ class RequestTrajectoryServer:
         triang_weight = np.array(self.jweights[3, 3])
         low, pos, high, vel_p, error = [], [], [], [], []
 
-        for x in range(6):
-            error.append(np.array([0]))
+        error = np.array([0])
         for x in range(8):
-            low.append(np.array([self.lbA[9+x]/2]))
+            low.append(np.array([self.joint_limits_lower[3+x]]))
             pos.append(np.array(self.joint_values[x+3]))
             vel_p.append(np.array(Opt[x+3]))
-            high.append(np.array([self.ubA[9+x]/2]))'''
+            high.append(np.array([self.joint_limits_upper[3+x]]))#'''
+
+        tic = rospy.get_rostime()
 
         while not self.reach_position or not reached_orientation or not self.reach_pregrasp:
-            # tic = rospy.get_rostime()
             i += 1
             # Check if client cancelled goal
             if not self.active_goal_flag:
@@ -388,7 +386,7 @@ class RequestTrajectoryServer:
 
             # Solve QP, redefine limit vectors of A.
             eef_pose_msg = Pose()
-            nWSR = np.array([150])
+            nWSR = np.array([100])
             [ac_lim_lower, ac_lim_upper] = self.acceleration_limits(Opt)
             self.joint_dist_lower_lim = self.joint_limits_lower - self.joint_values
             self.joint_dist_upper_lim = self.joint_limits_upper - self.joint_values
@@ -416,13 +414,6 @@ class RequestTrajectoryServer:
             velocity_msg.velocity[0] = Opt[0]
             velocity_msg.velocity[1] = Opt[1]
 
-            '''for n,j in enumerate(velocity_msg.name[3:10]):
-                #if abs(self.joint_dist_lower_lim[n+3]) < 0.3:
-                    print 'limit %s: %.3f'%(j, self.joint_dist_lower_lim[n+3])
-                #if abs(ac_lim_lower[n+3]) < 0.3:
-                    print 'acc %s: %.3f'%(j, ac_lim_lower[n+3])'''
-            #    print '%s: %.3f'%(j, velocity_msg.velocity[n])
-
             # Recalculate Error in EEF position
             error_posit, limit_p = self.calc_posit_error(error_posit)
 
@@ -447,105 +438,99 @@ class RequestTrajectoryServer:
             self.action_server.publish_feedback(self.action_status, self._feedback)
             self.action_server.publish_status()
 
+            self.success = True
+
             # Store EEF pose for plotting
-            eef_pose_msg.position.x = self.eef_pose.p[0]
+            '''eef_pose_msg.position.x = self.eef_pose.p[0]
             eef_pose_msg.position.y = self.eef_pose.p[1]
             eef_pose_msg.position.z = self.eef_pose.p[2]
             eef_pose_msg.orientation.x = eef_orient[0]
             eef_pose_msg.orientation.y = eef_orient[1]
             eef_pose_msg.orientation.z = eef_orient[2]
             eef_pose_msg.orientation.w = eef_orient[3]
-            eef_pose_array.poses.append(eef_pose_msg)
+            eef_pose_array.poses.append(eef_pose_msg)'''
 
             # Plot for debuging
             '''for x in range(8):
-                low[x] = np.hstack((low[x], self.lbA[9+x]/2))
+                low[x] = np.hstack((low[x], self.joint_limits_lower[3+x]))
                 pos[x] = np.hstack((pos[x], self.joint_values[x+3]))
                 vel_p[x] = np.hstack((vel_p[x], Opt[x+3]))
-                high[x] = np.hstack((high[x], self.ubA[9+x]/2))
-            for x in range(6):
-                if x < 3:
-                    error[x] = np.hstack((error[x], self.lbA[x]/self.prop_gain))
-                else:
-                    # error[x] = np.hstack((error[x], self.lbA[x]/self.prop_gain_orient))
-                    # e = self.goal_orient_euler - euler_from_quaternion(eef_orient)
-                    e = error_orient
-                    error[x] = np.hstack((error[x], e[x-3]))
+                high[x] = np.hstack((high[x], self.joint_limits_upper[3+x]))
+            e = error_posit / self.prop_gain
+            e_p = sqrt(pow(e[0], 2) + pow(e[1], 2) + pow(e[2], 2))
+            error = np.hstack((error, e_p))
             base_weight = np.hstack((base_weight, self.jweights[0, 0]))
             arm_weight = np.hstack((arm_weight, self.jweights[4, 4]))
             triang_weight = np.hstack((triang_weight, self.jweights[3, 3]))
-            t = np.hstack((t, i))'''
+            t = np.hstack((t, i))#'''
 
-            self.success = True
-
-            #print '\n iter: ', i
-            # toc = rospy.get_rostime()
-            # print (toc.nsecs-tic.nsecs)/10e9, 'sec Elapsed'
-            #print 'joint_vel: ', Opt[:-6]
-            #print 'error pos: ', error_posit / self.prop_gain
-            #print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
+            # print '\n iter: ', i
+            # print 'joint_vel: ', Opt[:-6]
+            # print 'error pos: ', error_posit / self.prop_gain
+            # print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
             # print 'slack    : ', Opt[-6:]
-            '''print 'eef_ori:   ', euler_from_quaternion(eef_orient)
-            print 'ori error: ', error_orient
-            print 'goal_ori:  ', self.goal_orient_euler
-            print '\neef error:  ', eef_posit
-            print 'pos error:  ', error_posit/self.prop_gain
-            print 'goal error: ', self.goal_posit
-            print 'lbA ', np.shape(self.lbA), '\n', self.lbA[6:]
-            print 'ubA ', np.shape(self.ubA), '\n',self.ubA[6:]'''
 
-        eef_pose_array.header.stamp = rospy.get_rostime()
+        '''eef_pose_array.header.stamp = rospy.get_rostime()
         eef_pose_array.header.frame_id = self.gripper
-        self.pub_plot.publish(eef_pose_array)
+        self.pub_plot.publish(eef_pose_array)'''
 
         # Plot
-        '''t_base = go.Scatter(
-            y=base_weight, x=t, marker=dict(size=4,),
-            mode='lines+markers', name='base_weight')
-        t_arm = go.Scatter(
-            y=arm_weight, x=t, marker=dict(size=4,),
-            mode='lines+markers', name='arm_weight')
-        t_triang = go.Scatter(
-            y=triang_weight, x=t, marker=dict(size=4, ),
-            mode='lines+markers', name='triangle_weight')
+        '''plt.style.use('ggplot')
+
+        plt.plot(t, arm_weight, lw=3)
+        plt.plot(t, base_weight,  lw=3)
+        plt.plot(t, triang_weight, lw=3)
+        plt.xlabel('Iterations')
+        plt.ylabel('Weights')
+        plt.title('Arm, base and torso weights')
+        plt.grid(True)
+        # plt.show()
+        tikz_save('weights.tex', figureheight='5cm', figurewidth='12cm')
+        plt.cla()
+
+        plt.plot(t, error, lw=3)
+        plt.xlabel('Iterations')
+        plt.ylabel('Error [m]')
+        plt.title('Position Error')
+        plt.grid(True)
+        # plt.show()
+        tikz_save('error.tex', figureheight='4cm', figurewidth='12cm')
+        plt.cla()
 
         for x in range(8):
-            t_low_lim = go.Scatter(
-                y=low[x], x=t, marker=dict(size=4, ),
-                mode='lines', name='joint_lim_low/2')
-            t_p0 = go.Scatter(
-                y=pos[x], x=t, marker=dict(size=4, ),
-                mode='lines+markers', name='pos')
-            t_v = go.Scatter(
-                y=vel_p[x], x=t, marker=dict(size=4, ),
-                mode='lines+markers', name='vel')
-            t_up_lim = go.Scatter(
-                y=high[x], x=t, marker=dict(size=4, ),
-                mode='lines', name='joint_lim_hi/2')
-            data = [t_low_lim, t_p0, t_v, t_up_lim]
-            layout = dict(title="Joint "+str(x),
-                          xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3, ),
-                          yaxis=dict(title='Position / Velocity'), )
-            fig = dict(data=data, layout=layout)
-            plotly.offline.plot(fig, filename='html/joint_limits'+str(x)+'.html')
-        data = []
-        for x in range(6):
-            t_err = go.Scatter(
-                y=error[x], x=t, marker=dict(size=4, ),
-                mode='lines+markers', name='error'+str(x))
-            data.append(t_err)
-        layout = dict(title="Errors [position] [orientation].",
-                      xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3, ),
-                      yaxis=dict(title='Error', gridwidth=3, ), )
-        fig = dict(data=data, layout=layout)
-        plotly.offline.plot(fig, filename='html/error.html') #, image='png', image_filename='error')
+            plt.plot(t, low[x], lw=1)
+            plt.plot(t, pos[x],  lw=3)
+            plt.plot(t, vel_p[x],  lw=3)
+            plt.plot(t, high[x], lw=1)
+            plt.xlabel('Iterations')
+            plt.ylabel('Position / Velocity')
+            plt.title('Trajectory of joint'+str(x)+'[rad],[rad/sec]')
+            plt.grid(True)
+            # plt.show()
+            tikz_save('joint'+str(x)+'.tex', figureheight='5cm', figurewidth='4.5cm')
+            plt.cla()
 
-        data = [t_base, t_arm, t_triang]
-        layout = dict(title="Weighs.",
-                      xaxis=dict(title='Iterations', autotick=False, dtick=25, gridwidth=3,),
-                      yaxis=dict(title='Weights',gridwidth=3,),)
-        fig = dict(data=data, layout=layout)
-        plotly.offline.plot(fig, filename='html/weights.html') #, image='png', image_filename='weights')'''
+        plt.plot(t, pos[0], pos[1], pos[2], pos[3], pos[4], pos[5], pos[6], lw=3)
+        plt.xlabel('Iterations')
+        plt.ylabel('Position')
+        plt.title('Trajectory of joints [rad]')
+        plt.grid(True)
+        # plt.show()
+        tikz_save('joint_pos.tex', figureheight='5cm', figurewidth='12cm')
+        plt.cla()
+
+        plt.plot(t, vel_p[0], vel_p[1], vel_p[2], vel_p[3], vel_p[4], vel_p[5], vel_p[6], lw=3)
+        plt.xlabel('Iterations')
+        plt.ylabel('Velocity')
+        plt.title('Trajectory of joints [rad/sec]')
+        plt.grid(True)
+        # plt.show()
+        tikz_save('joint_vel.tex', figureheight='5cm', figurewidth='12cm')
+        plt.cla()'''
+
+        toc = rospy.get_rostime()
+        print (toc.nsecs - tic.nsecs) / 10e9, 'sec Elapsed'
+        print (toc.secs - tic.secs), 'sec Elapsed'
 
         return 0
 
@@ -654,7 +639,7 @@ class RequestTrajectoryServer:
 
     def calculate_weigths(self, error_posit):
         # Weight of an active/inactive joint
-        active_joint = 1e-2
+        active_joint = 1e-1
         inactive_joint = 10
         # Weights of the slack vector
         self.sweights[:] = 1
