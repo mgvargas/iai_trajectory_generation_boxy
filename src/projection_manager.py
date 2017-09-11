@@ -34,6 +34,7 @@ from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, Reques
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
 from iai_markers_tracking.msg import Object
 from iai_markers_tracking.srv import GetObjectInfo
+from giskard_msgs.msg import WholeBodyCommand
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 from kdl_parser import kdl_tree_from_urdf_model
@@ -440,7 +441,7 @@ class SelectGoal:
         state_string = self.action_state_to_string()
 
         rospy.loginfo('Sending goal to RequestTrajectory Action.')
-        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(10))
+        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(12))
 
         if wait_for_result:
             rospy.sleep(0.05)
@@ -486,8 +487,8 @@ class SelectGoal:
     def select_new_gp(self, closest_pose, object_to_grasp):
         # Select second closest pose:
         if len(self.grasping_poses) > 1:
-            print self.grasping_poses
-            print 'remove',closest_pose.child_frame_id
+            # print self.grasping_poses
+            # print 'remove',closest_pose.child_frame_id
             self.grasping_poses.remove(closest_pose.child_frame_id)
             new_pose = self.goal_by_distance()
             arm, jacobian = self.arm_selector(new_pose)
@@ -619,9 +620,9 @@ def request(receive_goal, projection_class, selected_trajectory):
         trajectories_length = []
         manipulability = []
         found_traj = 0
-        for x in range(5):
+        for x in range(1):
             # Plot EEF trajectory in RVIZ
-            test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
+            # test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory_projection, status = projection_class.call_gp_action()
             if status == 'SUCCEEDED':
                 manipulability.append(projection_class.get_manipulability(jacobian))

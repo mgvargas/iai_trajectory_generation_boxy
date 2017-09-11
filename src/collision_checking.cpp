@@ -66,7 +66,7 @@ moveit_msgs::CollisionObject create_collision_object(visualization_msgs::Marker 
     Eigen::Vector3d b(0.001,0.001,0.001);
 
     mesh_path = marker.mesh_resource;
-    if (marker.ns == "kitchen_table" ){    // Mesh scale
+    if (marker.ns == "kitchen_table" || marker.ns == "cup" ){    // Mesh scale
         Eigen::Vector3d s(1.0,1.0,1.0);
         b = s;}
     m = shapes::createMeshFromResource(mesh_path,b);
@@ -95,7 +95,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
 
     // Robot state
     robot_state::RobotState& current_state = planning_scene.getCurrentStateNonConst();
-    const robot_model::JointModelGroup* joint_model_group = current_state.getJointModelGroup("whole_robot");
+    //const robot_model::JointModelGroup* joint_model_group = current_state.getJointModelGroup("whole_robot");
 
     //Get position of /odom wrt /map
     geometry_msgs::TransformStamped map_transform;
@@ -121,14 +121,12 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
     std::vector<std::string> object_ids;
 
     // Collision Objects
-    std::vector<moveit_msgs::CollisionObject> collision_objects_vector;
     moveit_msgs::CollisionObject collision_object;
     collision_request.group_name = "whole_robot";
 
     // Create collision objects from markers
     for (int j=0; j<num_of_objects; j=j+1){
         collision_object = create_collision_object(req.objects.markers[j]);
-        collision_objects_vector.push_back(collision_object);
         object_ids.push_back(collision_object.id);
         planning_scene.processCollisionObjectMsg(collision_object);
     }
@@ -159,13 +157,13 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
                 min_collision = distance;
             }
         }
+        state_validity = planning_scene.isStateValid(current_state, "whole_robot", true);
         if (collision_found == true){
             min_collision = -1;
             ROS_INFO("Service CollisionChecking: Collision found, discarding trajectory.");
             break;
         }
         collision_result.clear();
-        //state_validity = planning_scene.isStateValid(current_state, "whole_robot", false);
     }
 
     // Remove objects from the scene
