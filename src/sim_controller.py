@@ -183,8 +183,8 @@ class RequestTrajectoryServer:
     def calc_posit_error(self, error_posit):
         self.reach_position = False
         # Error threshold
-        threshold = 0.02 * self.prop_gain
-        precision = 0.015
+        threshold = 0.015 * self.prop_gain
+        precision = 0.008 # Allowed error
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
@@ -365,11 +365,11 @@ class RequestTrajectoryServer:
         low, pos, high, vel_p, error = [], [], [], [], []
 
         error = np.array([0])
-        for x in range(8):
-            low.append(np.array([self.joint_limits_lower[3+x]]))
-            pos.append(np.array(self.joint_values[x+3]))
-            vel_p.append(np.array(Opt[x+3]))
-            high.append(np.array([self.joint_limits_upper[3+x]]))#'''
+        for x in range(8+3):
+            low.append(np.array([self.joint_limits_lower[x]]))
+            pos.append(np.array(self.joint_values[x]))
+            vel_p.append(np.array(Opt[x]))
+            high.append(np.array([self.joint_limits_upper[x]]))#'''
 
         tic = rospy.get_rostime()
 
@@ -451,11 +451,12 @@ class RequestTrajectoryServer:
             eef_pose_array.poses.append(eef_pose_msg)'''
 
             # Plot for debuging
-            '''for x in range(8):
-                low[x] = np.hstack((low[x], self.joint_limits_lower[3+x]))
-                pos[x] = np.hstack((pos[x], self.joint_values[x+3]))
-                vel_p[x] = np.hstack((vel_p[x], Opt[x+3]))
-                high[x] = np.hstack((high[x], self.joint_limits_upper[3+x]))
+            '''for x in range(8+3):
+                low[x] = np.hstack((low[x], self.joint_limits_lower[x]))
+                pos[x] = np.hstack((pos[x], self.joint_values[x]))
+                vel_p[x] = np.hstack((vel_p[x], Opt[x]))
+                high[x] = np.hstack((high[x], self.joint_limits_upper[x]))
+
             e = error_posit / self.prop_gain
             e_p = sqrt(pow(e[0], 2) + pow(e[1], 2) + pow(e[2], 2))
             error = np.hstack((error, e_p))
@@ -477,56 +478,90 @@ class RequestTrajectoryServer:
         # Plot
         '''plt.style.use('ggplot')
 
-        plt.plot(t, arm_weight, lw=3)
-        plt.plot(t, base_weight,  lw=3)
-        plt.plot(t, triang_weight, lw=3)
+        plt.plot(t, arm_weight, 'g-.', lw=3, label='arm')
+        plt.plot(t, base_weight, 'k--', lw=3, label='base')
+        plt.plot(t, triang_weight, 'm', lw=2, label='torso')
         plt.xlabel('Iterations')
         plt.ylabel('Weights')
         plt.title('Arm, base and torso weights')
         plt.grid(True)
+        plt.legend()
         # plt.show()
-        tikz_save('weights.tex', figureheight='5cm', figurewidth='12cm')
+        tikz_save('weights.tex', figureheight='6cm', figurewidth='16cm')
         plt.cla()
 
-        plt.plot(t, error, lw=3)
+        plt.plot(t, error, 'k', lw=2)
         plt.xlabel('Iterations')
         plt.ylabel('Error [m]')
         plt.title('Position Error')
         plt.grid(True)
+        plt.legend()
         # plt.show()
-        tikz_save('error.tex', figureheight='4cm', figurewidth='12cm')
-        plt.cla()
+        tikz_save('error.tex', figureheight='6cm', figurewidth='16cm')
+        plt.cla()#'''
 
-        for x in range(8):
+        '''for x in range(8+3):
             plt.plot(t, low[x], lw=1)
             plt.plot(t, pos[x],  lw=3)
             plt.plot(t, vel_p[x],  lw=3)
             plt.plot(t, high[x], lw=1)
             plt.xlabel('Iterations')
             plt.ylabel('Position / Velocity')
-            plt.title('Trajectory of joint'+str(x)+'[rad],[rad/sec]')
             plt.grid(True)
             # plt.show()
             tikz_save('joint'+str(x)+'.tex', figureheight='5cm', figurewidth='4.5cm')
-            plt.cla()
+            plt.cla()'''
 
-        plt.plot(t, pos[0], pos[1], pos[2], pos[3], pos[4], pos[5], pos[6], lw=3)
+        '''plt.plot(t, pos[0], 'r--', lw=3, label='x')
+        plt.plot(t, pos[1], 'b', lw=2, label='y')
         plt.xlabel('Iterations')
         plt.ylabel('Position')
-        plt.title('Trajectory of joints [rad]')
+        plt.title('Trajectory of the base [m]')
         plt.grid(True)
+        plt.legend()
         # plt.show()
-        tikz_save('joint_pos.tex', figureheight='5cm', figurewidth='12cm')
+        tikz_save('base_pos.tex', figureheight='6cm', figurewidth='16cm')
+        plt.cla()
+        step = 2
+        plt.plot(t[0:-1:step], pos[3][0:-1:step], 'o', markersize=0.5, lw=3, label='j0')
+        plt.plot(t[0:-1:step], pos[4][0:-1:step], 'v', markersize=0.5, lw=3, label='j1')
+        plt.plot(t[0:-1:step], pos[5][0:-1:step], 'P', markersize=0.5, lw=3, label='j2')
+        plt.plot(t[0:-1:step], pos[6][0:-1:step], '*', markersize=0.5, lw=3, label='j3')
+        plt.plot(t, pos[7], 'k-.', lw=3, label='j4')
+        plt.plot(t, pos[8], '--', lw=3, label='j5')
+        plt.plot(t, pos[9], lw=3, label='j6')
+        plt.xlabel('Iterations')
+        plt.ylabel('Position [rad]')
+        plt.title('Trajectory of the joints')
+        plt.grid(True)
+        plt.legend(loc='upper left')
+        tikz_save('joint_pos.tex', figureheight='10cm', figurewidth='16cm')
         plt.cla()
 
-        plt.plot(t, vel_p[0], vel_p[1], vel_p[2], vel_p[3], vel_p[4], vel_p[5], vel_p[6], lw=3)
+        plt.plot(t, vel_p[0], 'r--', lw=3, label='x')
+        plt.plot(t, vel_p[1], 'b',lw=2, label='y')
         plt.xlabel('Iterations')
-        plt.ylabel('Velocity')
-        plt.title('Trajectory of joints [rad/sec]')
+        plt.ylabel('Velocity [m/sec]')
+        plt.title('Velocity of the base')
         plt.grid(True)
-        # plt.show()
-        tikz_save('joint_vel.tex', figureheight='5cm', figurewidth='12cm')
-        plt.cla()'''
+        plt.legend()
+        tikz_save('base_vel.tex', figureheight='6cm', figurewidth='16cm')
+        plt.cla()
+
+        plt.plot(t[0:-1:step], vel_p[3][0:-1:step], 'o', markersize=0.5, lw=3, label='j0')
+        plt.plot(t[0:-1:step], vel_p[4][0:-1:step], 'v', markersize=0.5, lw=3, label='j1')
+        plt.plot(t[0:-1:step], vel_p[5][0:-1:step], 'P', markersize=0.5, lw=3, label='j2')
+        plt.plot(t[0:-1:step], vel_p[6][0:-1:step], '*', markersize=0.5, lw=3, label='j3')
+        plt.plot(t, vel_p[7], 'k-.', lw=3, label='j4')
+        plt.plot(t, vel_p[8], '--', lw=3, label='j5')
+        plt.plot(t, vel_p[9], lw=3, label='j6')
+        plt.xlabel('Iterations')
+        plt.ylabel('Velocity [rad/sec]')
+        plt.title("Velocity of the arm's joints")
+        plt.legend(loc='upper left')
+        plt.grid(True)
+        tikz_save('joint_vel.tex', figureheight='10cm', figurewidth='16cm')
+        plt.cla()#'''
 
         toc = rospy.get_rostime()
         print (toc.nsecs - tic.nsecs) / 10e9, 'sec Elapsed'
