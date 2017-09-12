@@ -29,7 +29,7 @@ import reset_naive_sim
 import test_plotter
 from actionlib_msgs.msg import GoalStatus
 from random import randrange
-from iai_trajectory_generation_boxy.msg import ProjectedGraspingAction, ProjectedGraspingResult
+from iai_trajectory_generation_boxy.msg import ProjectedGraspingAction, ProjectedGraspingResult, Trajectory
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, RequestTrajectoryAction, RequestTrajectoryGoal
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
 from iai_markers_tracking.msg import Object
@@ -581,13 +581,13 @@ class ProjectedGraspingServer:
         return self.object_to_grasp, self.goal_received
 
 
-def trajectory_evaluation_service(trajectories, manipulability,trajectories_length, object_to_grasp):
+def trajectory_evaluation_service(trajectories, manipulability,trajectories_length, object_to_grasp, position_error):
     # Calling a service that evaluates obtained trajectories and selects the best one
     rospy.wait_for_service('trajectory_evaluation')
     try:
         evaluate = rospy.ServiceProxy('trajectory_evaluation', TrajectoryEvaluation)
         print 'mani', manipulability
-        selected_traj = evaluate(trajectories, manipulability, trajectories_length, object_to_grasp)
+        selected_traj = evaluate(trajectories, manipulability, trajectories_length, position_error, object_to_grasp)
         return selected_traj
     except rospy.ServiceException, e:
         rospy.logerr("Service 'Trajectory Evaluation' call failed: %s" % e)
@@ -616,18 +616,24 @@ def request(receive_goal, projection_class, selected_trajectory):
         # Distance to joint limits
         projection_class.dist_to_joint_limits(arm)
 
+        traj = Trajectory()
         trajectories = []
         trajectories_length = []
         manipulability = []
+        pos_error = []
         found_traj = 0
-        for x in range(1):
+        for x in range(5):
             # Plot EEF trajectory in RVIZ
-            # test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
+            test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory_projection, status = projection_class.call_gp_action()
             if status == 'SUCCEEDED':
+                # Save arrays for trajectory evaluation
                 manipulability.append(projection_class.get_manipulability(jacobian))
-                trajectories.append(trajectory_projection)
+                traj.trajectory = trajectory_projection.trajectory
+                trajectories.append(traj)
+                #trajectories.append(trajectory_projection)
                 trajectories_length.append(trajectory_projection.trajectory_length)
+                pos_error.append(trajectory_projection.position_error)
                 found_traj += 1
                 if found_traj >= 2:  # If trajectory succeded twice for that GP, try next one
                     arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
@@ -637,8 +643,10 @@ def request(receive_goal, projection_class, selected_trajectory):
                 found_traj = 0
             reset_naive_sim.reset_simulator()
 
+        # Send trajectories to evaluation
         if len(trajectories) > 0:
-            selected = trajectory_evaluation_service(trajectories, manipulability, trajectories_length, object_to_grasp)
+            selected = trajectory_evaluation_service(trajectories, manipulability, trajectories_length, object_to_grasp,
+                                                     pos_error)
             if not selected is -1:
                 selected_trajectory = trajectories[selected.selected_trajectory]
                 rospy.loginfo(selected)

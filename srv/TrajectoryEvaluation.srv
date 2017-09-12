@@ -1,6 +1,7 @@
 iai_trajectory_generation_boxy/Trajectory[] trajectories
 float32[] manipulability
 float32[] trajectories_length
+float32[] position_error
 string object_to_grasp
 ---
 int32 selected_trajectory

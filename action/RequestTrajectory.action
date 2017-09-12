@@ -8,6 +8,7 @@ string arm      # Do I need to specify the arm here??
 # Result
 sensor_msgs/JointState[] trajectory
 float32 trajectory_length
+float32 position_error
 ---
 # Feedback
 string sim_status

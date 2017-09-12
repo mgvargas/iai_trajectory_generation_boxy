@@ -91,7 +91,7 @@ class TrajEvaluation:
 
         return np.mean(jerk_active)
 
-    def get_score(self,traj_length, vel_change, acc_change, collision_dist, manipulability):
+    def get_score(self,traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error):
         # Variables
         num_traj = len(traj_length)
         max_length = 4.0
@@ -99,31 +99,34 @@ class TrajEvaluation:
         max_vel_change = 0.01
         min_collision_distance = 0.01
         max_manip = 0.3
+        max_error = 0.05
         # Weights
-        w_acc = 1.0
-        w_vel = 1.0
+        w_acc = 0.05
+        w_vel = 0.1
         w_length = 1.0
+        w_error = 0.8
         w_collision = 0.1
-        w_man = 1
+        w_man = 2.0
         score = []
         text_line = []
 
-        for n,traj in enumerate(traj_length):
+        for n, length in enumerate(traj_length):
             if collision_dist[n] == -1:  # If collision
                 score.append(100)
-                text_line.append('& \multicolumn{6}{c|}{Collision Found} \ \n')
+                text_line.append('& \multicolumn{7}{c|}{Collision Found} \\ \n')
             else:
-                score.append(w_length * traj / max_length + w_vel * vel_change[n] / max_vel_change \
+                score.append(w_length * length / max_length + w_vel * vel_change[n] / max_vel_change \
                              + w_acc * acc_change[n] / max_acc_change \
                              + w_collision * collision_dist[n] / min_collision_distance
-                             + w_man *( max_manip - manipulability[n]))
-                text_line.append( '& ' + str(round(traj*100,2)) + ' & ' + str(round(vel_change[n],3)) + ' & '
+                             + w_man *( max_manip - manipulability[n]) + w_error * pos_error[n] / max_error)
+
+                text_line.append( '& ' + str(round(length*100,2)) + ' & ' + str(round(vel_change[n],3)) + ' & '
                                   + str(round(acc_change[n],3)) + ' & ' + str(round(collision_dist[n]*100,2)) +
-                                  ' & ' + str(round(manipulability[n],3)) + ' & '
-                                  + str(round(score[n],3)) + ' \ \n')
+                                  ' & ' + str(round(manipulability[n],3)) + ' & ' + str(round(pos_error[n],3))
+                                  + ' & ' + str(round(score[n],3)) + ' \\ \n')
 
         for x in range(5-num_traj):
-            text_line.append('& \multicolumn{6}{c|}{Trajectory failed} \ \n')
+            text_line.append('& \multicolumn{7}{c|}{Trajectory failed} \\ \n')
 
         pack = rospkg.RosPack()
         dir = pack.get_path('iai_trajectory_generation_boxy') + '/test_scores/scores.tex'
@@ -146,6 +149,7 @@ class TrajEvaluation:
         manipulability = request.manipulability
         self.goal_obj = request.object_to_grasp
         traj_length  = request.trajectories_length
+        pos_error = request.position_error
         acc_change = []
         vel_change = []
         collision_dist = []
@@ -165,7 +169,7 @@ class TrajEvaluation:
             except rospy.ServiceException, e:
                 print "Service CollisionEvaluation call failed: %s" % e
 
-        scores = self.get_score(traj_length, vel_change, acc_change, collision_dist, manipulability)
+        scores = self.get_score(traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error)
 
         print 'scores; ',scores
         if min(scores) == 100:

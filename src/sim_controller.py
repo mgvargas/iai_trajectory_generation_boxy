@@ -173,6 +173,7 @@ class RequestTrajectoryServer:
             if self.success:
                 self._result.trajectory = self._feedback.sim_trajectory
                 self._result.trajectory_length = self.trajectory_length
+                self._result.position_error = self.final_error
                 rospy.loginfo('Action %s: Succeeded' % self._action_name)
                 self.action_status.status = 3
                 self.action_server.publish_result(self.action_status, self._result)
@@ -441,14 +442,14 @@ class RequestTrajectoryServer:
             self.success = True
 
             # Store EEF pose for plotting
-            '''eef_pose_msg.position.x = self.eef_pose.p[0]
+            eef_pose_msg.position.x = self.eef_pose.p[0]
             eef_pose_msg.position.y = self.eef_pose.p[1]
             eef_pose_msg.position.z = self.eef_pose.p[2]
             eef_pose_msg.orientation.x = eef_orient[0]
             eef_pose_msg.orientation.y = eef_orient[1]
             eef_pose_msg.orientation.z = eef_orient[2]
             eef_pose_msg.orientation.w = eef_orient[3]
-            eef_pose_array.poses.append(eef_pose_msg)'''
+            eef_pose_array.poses.append(eef_pose_msg)
 
             # Plot for debuging
             '''for x in range(8+3):
@@ -470,10 +471,11 @@ class RequestTrajectoryServer:
             # print 'error pos: ', error_posit / self.prop_gain
             # print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
             # print 'slack    : ', Opt[-6:]
+        self.final_error = sqrt(pow(error_posit[0],2) + pow(error_posit[1],2) + pow(error_posit[2],2))
 
-        '''eef_pose_array.header.stamp = rospy.get_rostime()
+        eef_pose_array.header.stamp = rospy.get_rostime()
         eef_pose_array.header.frame_id = self.gripper
-        self.pub_plot.publish(eef_pose_array)'''
+        self.pub_plot.publish(eef_pose_array)
 
         # Plot
         '''plt.style.use('ggplot')
