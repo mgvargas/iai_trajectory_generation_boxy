@@ -18,23 +18,23 @@
 
 import rospy
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingActionResult
+from iai_trajectory_generation_boxy.msg import PIControllerError
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 import reset_naive_sim
-import thread
+import threading
 import copy
 
 
 class VelCommands:
     def __init__(self):
+        self.r = rospy.Rate(200)
+        self.joint_pos = {}
+        self.joint_vel = {}
         self.received = False
-        self.integrator_max = 5
-
+        self.v_lock = threading.Lock()
         self.pub = rospy.Publisher('whole_body_controller/velocity_cmd', JointState, queue_size=10)
-        self.pub_error_p = rospy.Publisher('command/error_p', Float32MultiArray, queue_size=10)
-        self.pub_error_v = rospy.Publisher('command/error_v', Float32MultiArray, queue_size=10)
-        self.pub_int_p = rospy.Publisher('command/int_p', Float32MultiArray, queue_size=10)
-        self.pub_int_v = rospy.Publisher('command/int_v', Float32MultiArray, queue_size=10)
+        self.pub_error = rospy.Publisher('controller_values', PIController, queue_size=10)
         self.pub_velocity = rospy.Publisher('/simulator/commands', JointState, queue_size=3)
 
         rospy.Subscriber("projected_grasping_server/result", ProjectedGraspingActionResult, self.traj_callback)
@@ -44,9 +44,7 @@ class VelCommands:
         self.joint_names = joints.name
         joint_values = joints.position
         joint_vel = joints.velocity
-        self.joint_pos = {}
-        self.joint_vel = {}
-        self.v_lock = thread.allocate_lock()
+
         with self.v_lock:
             for i, joint in enumerate(self.joint_names):
                 if "neck" not in joint and "gripper" not in joint:
@@ -57,7 +55,6 @@ class VelCommands:
         self.trajectory = msg.result.selected_trajectory.trajectory
         if len(self.trajectory) > 0:
             self.received = True
-        print 'got it'
 
     def calculate(self):
         if self.received is False:
@@ -69,11 +66,13 @@ class VelCommands:
             desired_pos = {}
             desired_vel = {}
             num_joints = len(self.trajectory[0].name)
-            self.P_vel = [1]*num_joints
-            self.P_pos = [1]*num_joints
+            self.P_vel = [0]*num_joints
+            self.P_pos = [10]*num_joints
+            #self.P_pos[0] = self.P_pos[1] = 0.7
+            #self.P_vel[0] = self.P_vel[1] = 0.4
             self.I_vel = [0.0]*num_joints
-            self.I_pos = [0.0]*num_joints
-            self.integrator_max = 100
+            self.I_pos = [1.0]*num_joints
+            self.integrator_max = 10
             traj_init_time = self.trajectory[0].header.stamp
             start_time = rospy.Time.now()
 
@@ -92,28 +91,22 @@ class VelCommands:
 
                 now = rospy.Time.now()
                 time_elapsed = now - start_time
+                cont_values = PIController()
 
-                while time_elapsed <= (traj_stamp - traj_init_time + rospy.Duration.from_sec(0.1)):
-                    error_p = Float32MultiArray()
-                    # error_v = Float32MultiArray()
-                    # int_p = Float32MultiArray()
-                    # int_v = Float32MultiArray()
-                    error_p.layout.dim.append(MultiArrayDimension())
-                    error_p.layout.dim.append(MultiArrayDimension())
-                    error_p.layout.dim[0].label = 'error_vel'
-                    error_p.layout.dim[0].size = len(joint_names)
-                    error_p.layout.dim[0].stride = 0
-                    error_v = copy.deepcopy(error_p)
-                    int_p = copy.deepcopy(error_p)
-                    int_v = copy.deepcopy(error_p)
-
+                while time_elapsed <= (traj_stamp - traj_init_time):
+                    cont_values.des_p = [0.0] * len(joint_names)
+                    cont_values.real_p = [0.0] * len(joint_names)
+                    cont_values.error_p = [0.0] * len(joint_names)
+                    cont_values.error_vel = [0.0] * len(joint_names)
+                    cont_values.integral_p = [0.0] * len(joint_names)
+                    cont_values.integral_vel = [0.0] * len(joint_names)
                     for n, joint in enumerate(joint_names):
                         try:
                             with self.v_lock:
                                 error_pos = desired_pos[joint] - self.joint_pos[joint]
                                 error_vel = desired_vel[joint] - self.joint_vel[joint]
                         except KeyError:
-                            print 'Skipping joint', joint
+                            print '------ Skipping calc', joint
                         else:
                             integrator_pos[n] += error_pos
                             if integrator_pos[n] >= self.integrator_max:
@@ -133,24 +126,32 @@ class VelCommands:
                             boxy_command.name.append(joint)
                             boxy_command.velocity.append(control_pos + control_vel)
 
-                            error_p.data.append(round(error_pos,4))
-                            error_v.data.append(round(error_vel,4))
-                            int_p.data.append(round(integrator_pos[n],4))
-                            int_v.data.append(round(integrator_vel[n],4))
+                            try:
+                                with self.v_lock:
+                                    cont_values.real_p[n] = self.joint_pos[joint]
+                            except KeyError:
+                                print '------ Skipping publish', joint
+                            cont_values.des_p[n] = desired_pos[joint]
+                            cont_values.error_p[n] = error_pos
+                            cont_values.error_vel[n] = error_vel
+                            cont_values.integral_p[n] = integrator_pos[n]
+                            cont_values.integral_vel[n] = integrator_vel[n]
 
                     boxy_command.header.stamp = now
                     # self.pub.publish(boxy_command)
-                    self.pub_error_p.publish(error_p)
-                    self.pub_error_v.publish(error_v)
-                    self.pub_int_p.publish(int_p)
-                    self.pub_int_v.publish(int_v)
+                    self.pub_error.publish(cont_values)
                     self.pub_velocity.publish(boxy_command)
                     time_elapsed = rospy.Time.now() - start_time
+                    self.r.sleep()
+
+            print 'time: ', rospy.Time.now().secs - start_time.secs
+            rospy.sleep(4)
+            reset_naive_sim.reset_simulator()
 
 
 def main():
     rospy.init_node('send_traj_to_boxy')
-    rospy.Rate(100)
+    rospy.Rate(200)
     command = VelCommands()
     while not rospy.is_shutdown():
         command.calculate()

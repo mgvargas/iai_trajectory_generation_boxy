@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root>
+ <tabbed_widget parent="main_window" name="Main Window">
+  <plotmatrix rows="2" tab_name="plot" columns="6">
+   <plot row="0" col="0">
+    <range top="-1.053513" left="4.453554" right="9.187165" bottom="-2.535280"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.0" B="128"/>
+    <curve R="0" G="128" name="controller_values/real_p.0" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="0">
+    <range top="-1.488435" left="4.453554" right="9.187165" bottom="-1.614719"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.31" B="255"/>
+    <curve R="0" G="128" name="controller_values/real_p.31" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="1">
+    <range top="1.088918" left="4.453554" right="9.187165" bottom="-0.125657"/>
+    <limitY/>
+    <curve R="0" G="128" name="controller_values/des_p.1" B="128"/>
+    <curve R="160" G="160" name="controller_values/real_p.1" B="164"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="1">
+    <range top="-0.846250" left="4.453554" right="9.187165" bottom="-1.342580"/>
+    <limitY/>
+    <curve R="0" G="128" name="controller_values/des_p.41" B="0"/>
+    <curve R="255" G="0" name="controller_values/real_p.41" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="2">
+    <range top="0.918705" left="4.453554" right="9.187165" bottom="0.729094"/>
+    <limitY/>
+    <curve R="160" G="160" name="controller_values/des_p.01" B="164"/>
+    <curve R="128" G="128" name="controller_values/real_p.01" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="2">
+    <range top="2.000838" left="4.453554" right="9.187165" bottom="1.545629"/>
+    <limitY/>
+    <curve R="255" G="0" name="controller_values/des_p.51" B="0"/>
+    <curve R="1" G="0" name="controller_values/real_p.51" B="255"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="3">
+    <range top="-0.395672" left="4.453554" right="9.187165" bottom="-0.741740"/>
+    <limitY/>
+    <curve R="128" G="128" name="controller_values/des_p.11" B="0"/>
+    <curve R="128" G="0" name="controller_values/real_p.11" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="3">
+    <range top="-1.074094" left="4.453554" right="9.187165" bottom="-1.100425"/>
+    <limitY/>
+    <curve R="255" G="0" name="controller_values/des_p.61" B="255"/>
+    <curve R="0" G="0" name="controller_values/real_p.61" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="4">
+    <range top="-2.590887" left="4.453554" right="9.187165" bottom="-2.615679"/>
+    <limitY/>
+    <curve R="128" G="0" name="controller_values/des_p.21" B="0"/>
+    <curve R="0" G="0" name="controller_values/real_p.21" B="255"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="4">
+    <range top="-0.258170" left="4.453554" right="9.187165" bottom="-0.310453"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.71" B="128"/>
+    <curve R="0" G="128" name="controller_values/real_p.71" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="5">
+    <range top="1.005142" left="4.453554" right="9.187165" bottom="-0.024517"/>
+    <limitY/>
+    <curve R="160" G="160" name="controller_values/integral_p.0" B="164"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="5">
+    <range top="0.017550" left="4.453554" right="9.187165" bottom="-0.204077"/>
+    <limitY/>
+    <curve R="128" G="128" name="controller_values/integral_p.01" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <currentPlotMatrix index="0"/>
+ </tabbed_widget>
+ <tabbed_widget parent="main_window" name="Main Window">
+  <plotmatrix rows="2" tab_name="plot" columns="6">
+   <plot row="0" col="0">
+    <range top="-1.053513" left="4.453554" right="9.187165" bottom="-2.535280"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.0" B="128"/>
+    <curve R="0" G="128" name="controller_values/real_p.0" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="0">
+    <range top="-1.488435" left="4.453554" right="9.187165" bottom="-1.614719"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.31" B="255"/>
+    <curve R="0" G="128" name="controller_values/real_p.31" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="1">
+    <range top="1.088918" left="4.453554" right="9.187165" bottom="-0.125657"/>
+    <limitY/>
+    <curve R="0" G="128" name="controller_values/des_p.1" B="128"/>
+    <curve R="160" G="160" name="controller_values/real_p.1" B="164"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="1">
+    <range top="-0.846250" left="4.453554" right="9.187165" bottom="-1.342580"/>
+    <limitY/>
+    <curve R="0" G="128" name="controller_values/des_p.41" B="0"/>
+    <curve R="255" G="0" name="controller_values/real_p.41" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="2">
+    <range top="0.918705" left="4.453554" right="9.187165" bottom="0.729094"/>
+    <limitY/>
+    <curve R="160" G="160" name="controller_values/des_p.01" B="164"/>
+    <curve R="128" G="128" name="controller_values/real_p.01" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="2">
+    <range top="2.000838" left="4.453554" right="9.187165" bottom="1.545629"/>
+    <limitY/>
+    <curve R="255" G="0" name="controller_values/des_p.51" B="0"/>
+    <curve R="1" G="0" name="controller_values/real_p.51" B="255"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="3">
+    <range top="-0.395672" left="4.453554" right="9.187165" bottom="-0.741740"/>
+    <limitY/>
+    <curve R="128" G="128" name="controller_values/des_p.11" B="0"/>
+    <curve R="128" G="0" name="controller_values/real_p.11" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="3">
+    <range top="-1.074094" left="4.453554" right="9.187165" bottom="-1.100425"/>
+    <limitY/>
+    <curve R="255" G="0" name="controller_values/des_p.61" B="255"/>
+    <curve R="0" G="0" name="controller_values/real_p.61" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="4">
+    <range top="-2.590887" left="4.453554" right="9.187165" bottom="-2.615679"/>
+    <limitY/>
+    <curve R="128" G="0" name="controller_values/des_p.21" B="0"/>
+    <curve R="0" G="0" name="controller_values/real_p.21" B="255"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="4">
+    <range top="-0.258170" left="4.453554" right="9.187165" bottom="-0.310453"/>
+    <limitY/>
+    <curve R="0" G="0" name="controller_values/des_p.71" B="128"/>
+    <curve R="0" G="128" name="controller_values/real_p.71" B="128"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="0" col="5">
+    <range top="1.005142" left="4.453554" right="9.187165" bottom="-0.024517"/>
+    <limitY/>
+    <curve R="160" G="160" name="controller_values/integral_p.0" B="164"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" col="5">
+    <range top="0.017550" left="4.453554" right="9.187165" bottom="-0.204077"/>
+    <limitY/>
+    <curve R="128" G="128" name="controller_values/integral_p.01" B="0"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <currentPlotMatrix index="0"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <previouslyLoadedStreamer name="ROS Topic Streamer" configuration="/controller_values "/>
+</root>
+
