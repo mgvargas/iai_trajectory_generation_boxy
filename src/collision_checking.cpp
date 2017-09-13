@@ -31,6 +31,7 @@
 #include <geometric_shapes/shape_operations.h>
 
 using namespace std;
+std::string camera_frame;
 
 geometry_msgs::TransformStamped get_tf(string destination_frame, string origin_frame){
     geometry_msgs::TransformStamped g_transform;
@@ -104,7 +105,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
 
     // Set transform from '/camera_optical_frame' to '/map'.
     geometry_msgs::TransformStamped camera_t;
-    camera_t = get_tf("/odom", "/camera_optical_frame");
+    camera_t = get_tf("/odom", camera_frame);
 
     planning_scene.getTransformsNonConst().setTransform(camera_t);
 
@@ -183,6 +184,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "collision_evaluation_server");
     ros::NodeHandle n;
+    n.getParam("camera_frame", camera_frame);
 
     ros::ServiceServer service = n.advertiseService("collision_evaluation", evaluate_collision);
     ROS_INFO("Ready to check for collisions.");

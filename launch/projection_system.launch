@@ -16,7 +16,7 @@
     <!-- Run the object detection and object database -->
     <include file="$(find iai_markers_tracking)/launch/markers_detection.launch">
     	<arg name="sim" value="$(arg sim)"/>
-      <arg name="rviz" value="$(arg rviz)"/>
+        <arg name="rviz" value="$(arg rviz)"/>
     	<arg name="boxy" value="$(arg boxy)"/>
     </include>
 
@@ -24,14 +24,26 @@
 
     <!-- Simulation (publishes markers in tf) -->
     <!--include file="$(find iai_boxy_description)/launch/upload_boxy.launch" /-->
+    <group if="$(arg naive)">
+        <include file="$(find iai_trajectory_generation_boxy)/launch/naive_kinem_sim.launch">
+            <arg name="boxy" value="$(arg boxy)"/>
+        </include>
+    </group>
     <group if="$(arg sim)">
-        <group if="$(arg naive)">
-            <include file="$(find iai_trajectory_generation_boxy)/launch/naive_kinem_sim.launch"/>
-        </group>
-		  <group unless="$(arg boxy)">
+        <group unless="$(arg boxy)">
             <node name="simulate_camera" pkg="iai_markers_tracking" type="simulate_camera_transform.py"
               respawn="false" output="screen"/>
         </group>
+    </group>
+
+    <!-- Joint state topic, used by sim_controller.py, flag to set state for naive_kin, used by projection_manager -->
+    <group if="$(arg boxy)">
+        <param name="joint_topic" type="string" value="/simulate/joint_states" />
+        <param name="set_start_config" type="bool" value="true" />
+    </group>
+    <group unless="$(arg boxy)">
+        <param name="joint_topic" type="string" value="joint_states" />
+        <param name="set_start_config" type="bool" value="false" />
     </group>
 
     <node pkg="tf2_ros" type="buffer_server" name="tf2_buffer_server" />
@@ -43,20 +55,14 @@
           respawn="false" output="screen"/>
     <node name="sim_motion_controller" pkg="iai_trajectory_generation_boxy" type="sim_controller.py"
           respawn="false" output="screen"/>
-        <!--remap from="~joint_states" to="joint_states" /-->
     <node name="trajectory_evaluation" pkg="iai_trajectory_generation_boxy" type="trajectory_evaluation.py"
           respawn="false" output="screen"/>
     <include file="$(find iai_trajectory_generation_boxy)/launch/collision.launch"/>
 
     <!-- Send trajectory to the robot -->
-    <group if="$(arg boxy)">
+    <!--group if="$(arg boxy)">
            <node name="send_commands" pkg="iai_trajectory_generation_boxy" type="send_command_to_boxy.py"
               respawn="false" output="screen"/>
-    </group>
-
-    <!-- Boxy simulation>
-    <group if="$(arg sim)">
-        <include file="$(find iai_boxy_sim)/launch/boxy.launch"/>
     </group-->
 
 </launch>

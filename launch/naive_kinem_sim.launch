@@ -1,9 +1,22 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="iai_naive_kinematics_sim" type="simulator"
-          name="simulator" output="screen">
-        <rosparam command="load"
-                file="$(find iai_trajectory_generation_boxy)/config/controller_param.yaml" />
-        <remap from="~joint_states" to="joint_states" />
-    </node>
+    <arg name="boxy" default="false" />
+
+    <group if="$(arg boxy)">
+        <node pkg="iai_naive_kinematics_sim" type="simulator"
+              name="simulator" output="screen">
+            <rosparam command="load"
+                    file="$(find iai_trajectory_generation_boxy)/config/controller_param.yaml" />
+            <remap from="~joint_states" to="/simulate/joint_states" />
+        </node>
+    </group>
+
+    <group unless="$(arg boxy)">
+        <node pkg="iai_naive_kinematics_sim" type="simulator"
+              name="simulator" output="screen">
+            <rosparam command="load"
+                    file="$(find iai_trajectory_generation_boxy)/config/controller_param.yaml" />
+            <remap from="~joint_states" to="joint_states" />
+        </node>
+    </group>
 </launch>
