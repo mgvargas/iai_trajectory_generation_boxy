@@ -22,11 +22,11 @@
 #include <ros/package.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
+#include <iai_trajectory_generation_boxy/CollisionEvaluation.h>
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/planning_scene/planning_scene.h>
-#include <iai_trajectory_generation_boxy/CollisionEvaluation.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <geometric_shapes/shape_operations.h>
 
@@ -50,9 +50,9 @@ geometry_msgs::TransformStamped get_tf(string destination_frame, string origin_f
     g_transform.transform.translation.y = transform.getOrigin().y();
     g_transform.transform.translation.z = transform.getOrigin().z();
     g_transform.transform.rotation.x = transform.getRotation().x();
-    g_transform.transform.rotation.y = transform.getRotation().x();
-    g_transform.transform.rotation.z = transform.getRotation().x();
-    g_transform.transform.rotation.w = transform.getRotation().x();
+    g_transform.transform.rotation.y = transform.getRotation().y();
+    g_transform.transform.rotation.z = transform.getRotation().z();
+    g_transform.transform.rotation.w = transform.getRotation().w();
 
     return g_transform;
 }
@@ -95,7 +95,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
 
     // Robot state
     robot_state::RobotState& current_state = planning_scene.getCurrentStateNonConst();
-    //const robot_model::JointModelGroup* joint_model_group = current_state.getJointModelGroup("whole_robot");
+    const robot_model::JointModelGroup* joint_model_group = current_state.getJointModelGroup("whole_robot");
 
     //Get position of /odom wrt /map
     geometry_msgs::TransformStamped map_transform;
@@ -146,7 +146,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
         for(int x=0; x<num_of_joints; x=x+1){
                joint_state[joint_names[x]] = joint_values[x];
         }
-        //current_state.setJointGroupPositions(joint_model_group, joint_values);
+        current_state.setJointGroupPositions(joint_model_group, joint_values);
         current_state.setVariablePositions(joint_state);
         planning_scene.checkCollision(collision_request, collision_result, current_state, acm);
         collision_found = collision_result.collision;
@@ -155,7 +155,7 @@ bool evaluate_collision(iai_trajectory_generation_boxy::CollisionEvaluation::Req
             //cout << "distance" << distance << endl;
             if (distance < min_collision){
                 min_collision = distance;
-            }
+           }
         }
         state_validity = planning_scene.isStateValid(current_state, "whole_robot", true);
         if (collision_found == true){
