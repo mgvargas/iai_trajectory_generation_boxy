@@ -242,8 +242,8 @@ def six():
 
 def seven():
     joints_w_values = {
-        'odom_x_joint': -1.2,
-        'odom_y_joint': 0.0,
+        'odom_x_joint': -1.2, #2.2
+        'odom_y_joint': 0.0, #0.6
         'odom_z_joint': -0.07,
         'left_arm_0_joint':-1.5939017921498873,
         'left_arm_1_joint': 0.8390743106005174,
@@ -260,6 +260,34 @@ def seven():
         'right_arm_5_joint': 1.632141298729036,
         'right_arm_6_joint': -0.66445876942373,
         'triangle_base_joint':-0.34682312271737925,
+        'neck_shoulder_lift_joint': -3.0928,
+        'neck_shoulder_pan_joint': -1.67144,
+        'neck_wrist_1_joint': 1.23036,
+        'neck_wrist_2_joint': 1.54493,
+        'neck_wrist_3_joint': 0.04506
+    }
+    return joints_w_values
+
+def eight():
+    joints_w_values = {
+        'left_arm_0_joint': -1.831434965133667,
+        'left_arm_1_joint': 0.710098385810852,
+        'left_arm_2_joint': 0.963445782661438,
+        'left_arm_3_joint': -0.6084356904029846,
+        'left_arm_4_joint': -2.5866940021514893,
+        'left_arm_5_joint': -1.9400300979614258,
+        'left_arm_6_joint': -1.2900283336639404,
+        'odom_x_joint': 0.0,
+        'odom_y_joint': 0.0,
+        'odom_z_joint': 0.0,
+        'right_arm_0_joint': -0.5976466536521912,
+        'right_arm_1_joint': 0.5533322691917419,
+        'right_arm_2_joint': -0.750594973564148,
+        'right_arm_3_joint': -0.010870818048715591,
+        'right_arm_4_joint': 0.826876699924469,
+        'right_arm_5_joint': -0.466553658246994,
+        'right_arm_6_joint': 2.046936511993408,
+        'triangle_base_joint': -0.2314388,
         'neck_shoulder_lift_joint': -3.0928,
         'neck_shoulder_pan_joint': -1.67144,
         'neck_wrist_1_joint': 1.23036,
@@ -308,6 +336,7 @@ def select_option():
                5: five,
                6: six,
                7: seven,
+               8: eight,
                }
 
     joint_w_values = options[int(config_number)]()
