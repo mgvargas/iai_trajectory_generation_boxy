@@ -65,6 +65,7 @@ class SelectGoal:
         self.distance_threshold = 1.15
         # Gripper frames:
         self.grip_left = 'left_gripper_tool_frame'
+        # self.grip_right = 'left_gripper_tool_frame'
         self.grip_right = 'right_gripper_tool_frame'
         self.frame_base = 'base_link'
 
@@ -171,8 +172,9 @@ class SelectGoal:
                                                                  rospy.Time(0), rospy.Duration(2, 5e8))
                 self.pose_found = True
 
-            except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
-                rospy.logerr('No TF found between gripper and object. ', exc)
+            except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException,
+                    tf2_ros.InvalidArgumentException):
+                rospy.logerr('No TF found between gripper and object.')
                 continue
             else:
                 self.dist_l[n] = math.sqrt(
@@ -353,7 +355,7 @@ class SelectGoal:
             return -1
 
     def yaml_writer(self):
-        # Write a YAML file with the parameters for the simulated controller
+        # Write a YAML file with the parameters for the simulation (iai_naive_kinematic_sim)
         try:
             # Open YAML configuration file
             pack = rospkg.RosPack()
@@ -367,26 +369,31 @@ class SelectGoal:
                 arm = 'left'
             else:
                 arm = 'right'
-            '''joint_w_values = {}
+
+            joint_w_values = {}
             joint_w_values.update(self.odom_joints)
             joint_w_values.update(self.triang_base_joint)
-            for n, val in enumerate(self.joint_names):
-                if self.left_arm is True:
-                    arm = 'left'
-                    joint_w_values.update({val: self.left_jnt_pos[n]})
-                else:
-                    arm = 'right'
-                    joint_w_values.update({val: self.right_jnt_pos[n]})'''
+            right_names = self.urdf_model.get_chain('triangle_base_link', 'right_gripper_tool_frame',
+                                                    links=False, fixed=False)
+            left_names = self.urdf_model.get_chain('triangle_base_link', 'left_gripper_tool_frame',
+                                                   links=False, fixed=False)
+            for n, val in enumerate(left_names):
+                joint_w_values.update({val: self.left_jnt_pos[n]})
+            for n, val in enumerate(right_names):
+                joint_w_values.update({val: self.right_jnt_pos[n]})
 
-            controlled_joint_names = self.urdf_model.get_chain('odom', self.frame_end, links=False, fixed=False)
-            #data['controlled_joints'] = controlled_joint_names
+            # controlled_joint_names = self.urdf_model.get_chain('odom', self.frame_end, links=False, fixed=False)
+            # data['controlled_joints'] = controlled_joint_names
             data['simulated_links'] = sim_links_names
-            # data['start_config'] = joint_w_values
             data['projection_mode'] = False
             data['goal_pose_name'] = self.goal_pose.child_frame_id
             data['arm'] = arm
             data['sim_frequency'] = 100
             data['watchdog_period'] = 0.1
+
+            set_start_config = rospy.get_param('set_start_config')
+            if set_start_config:
+                data['start_config'] = joint_w_values
 
             # Write file
             with open(dir, 'w') as outfile:
@@ -399,10 +406,11 @@ class SelectGoal:
         # Get TF between base and object's grasping pose
         try:
             # goal_pose = self.tfBuffer.lookup_transform(self.frame_base, pose, rospy.Time(0), rospy.Duration(1, 5e8))
-            goal_pose = self.tfBuffer.lookup_transform('odom', pose, rospy.Time(0), rospy.Duration(1, 5e8))
+            goal_pose = self.tfBuffer.lookup_transform('odom', pose, rospy.Time(0), rospy.Duration(4, 5e8))
 
-        except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
-            rospy.logerr('No TF found between base and object. ', exc)
+        except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException,
+                tf2_ros.InvalidArgumentException):
+            rospy.logerr('No TF found between base and pose ',pose)
             goal_pose = pose
         return goal_pose
 
@@ -437,11 +445,12 @@ class SelectGoal:
 
         pregrasp = self.get_goal_pose_tf('pre-'+self.goal_pose.child_frame_id)
         goal = RequestTrajectoryGoal(grasping_pose=self.goal_pose, pre_grasping=pregrasp, arm=arm)
-        self.gp_action.send_goal(goal, feedback_cb=self.action_feedback_cb)
+        # self.gp_action.send_goal(goal, feedback_cb=self.action_feedback_cb)
+        self.gp_action.send_goal(goal)
         state_string = self.action_state_to_string()
 
         rospy.loginfo('Sending goal to RequestTrajectory Action.')
-        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(12))
+        wait_for_result = self.gp_action.wait_for_result(rospy.Duration.from_sec(14))
 
         if wait_for_result:
             rospy.sleep(0.05)
@@ -510,6 +519,7 @@ class SelectGoal:
             arm = self.desired_chain
             jacobian = self.get_jacobian(self.desired_chain)
 
+
             # Find closest grasping pose
             self.trans = [0] * len(grasping_poses)
             self.dist = [0] * len(grasping_poses)
@@ -517,13 +527,14 @@ class SelectGoal:
             for n, pose in enumerate(grasping_poses):
                 try:
                     self.trans[n] = self.tfBuffer.lookup_transform(self.frame_end, pose,
-                                                                     rospy.Time(0), rospy.Duration(2, 5e8))
+                                                                     rospy.Time(0), rospy.Duration(3, 5e8))
                     self.dist[n] = math.sqrt(self.trans[n].transform.translation.x ** 2
                                              + self.trans[n].transform.translation.y ** 2
                                              + self.trans[n].transform.translation.z ** 2)
 
-                except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as exc:
-                    rospy.logerr('No TF found between gripper and object. ', exc)
+                except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException,
+                        tf2_ros.InvalidArgumentException):
+                    rospy.logerr('No TF found between gripper and object. ', pose, self.frame_end)
                     continue
 
             self.min_dist = min(d for d in self.dist)
@@ -622,7 +633,7 @@ def request(receive_goal, projection_class, selected_trajectory):
         manipulability = []
         pos_error = []
         found_traj = 0
-        for x in range(5):
+        for x in range(4):
             # Plot EEF trajectory in RVIZ
             test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory_projection, status = projection_class.call_gp_action()
@@ -631,7 +642,6 @@ def request(receive_goal, projection_class, selected_trajectory):
                 manipulability.append(projection_class.get_manipulability(jacobian))
                 traj.trajectory = trajectory_projection.trajectory
                 trajectories.append(traj)
-                #trajectories.append(trajectory_projection)
                 trajectories_length.append(trajectory_projection.trajectory_length)
                 pos_error.append(trajectory_projection.position_error)
                 found_traj += 1
@@ -642,6 +652,7 @@ def request(receive_goal, projection_class, selected_trajectory):
                 arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
                 found_traj = 0
             reset_naive_sim.reset_simulator()
+        reset_naive_sim.reset_simulator()
 
         # Send trajectories to evaluation
         if len(trajectories) > 0:
@@ -650,6 +661,9 @@ def request(receive_goal, projection_class, selected_trajectory):
             if not selected is -1:
                 selected_trajectory = trajectories[selected.selected_trajectory]
                 rospy.loginfo(selected)
+            else:
+                rospy.logerr('Trajectory generation failed, all trajectories had a collision')
+                receive_goal.cancel_cb(0)
         else:
             rospy.logerr('Trajectory generation failed')
             receive_goal.cancel_cb(0)
