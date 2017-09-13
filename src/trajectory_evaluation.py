@@ -135,7 +135,7 @@ class TrajEvaluation:
             f.write(text_start)
             for line in text_line:
                 f.write(line)
-            f.write('\hline')
+            f.write('\hline \n')
 
         return score
 

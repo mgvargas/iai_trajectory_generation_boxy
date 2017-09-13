@@ -65,11 +65,13 @@ class RequestTrajectoryServer:
         self.joint_values_kdl = kdl.JntArray(self.nJoints)
         self.eef_pose = kdl.Frame()
         self.far = False
+        self.old_error = [1.0, 1.0, 1.0]
         # TODO: find appropriate max acceleration
         self.accel_max = np.array([0.3, 0.3, 0.3, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
         #self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
 
-        rospy.Subscriber('/joint_states', JointState, self.joint_callback)
+        joint_topic = rospy.get_param('joint_topic')
+        rospy.Subscriber(joint_topic, JointState, self.joint_callback)
         self.pub_clock = rospy.Publisher('/simulator/projection_clock', ProjectionClock, queue_size=3)
         self.pub_velocity = rospy.Publisher('/simulator/commands', JointState, queue_size=3)
         self.pub_plot = rospy.Publisher('/data_to_plot', PoseArray, queue_size=10)
@@ -184,8 +186,8 @@ class RequestTrajectoryServer:
     def calc_posit_error(self, error_posit):
         self.reach_position = False
         # Error threshold
-        threshold = 0.015 * self.prop_gain
-        precision = 0.008 # Allowed error
+        threshold = 0.025 * self.prop_gain
+        precision = 0.025 # Allowed error
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
@@ -195,14 +197,14 @@ class RequestTrajectoryServer:
             error_posit = (self.pregrasp_posit - eef_posit) * self.prop_gain
             # At the beginning, move a bit more so that arm has better manipulability (center robot in front of object)
             if self.far and self.offset_direction:
-                # print '------------- add error: ', error_posit/self.prop_gain
                 error_posit[1] += self.offset_direction * 0.1 * self.prop_gain
 
         else:
             self.reach_pregrasp = True
             error_posit = (self.goal_posit - eef_posit) * self.prop_gain
         limit_p = [abs(x/self.prop_gain) for x in error_posit]
-        if max(limit_p) < precision:
+
+        if max(limit_p) <= precision:
             self.reach_position = True
 
         return error_posit, limit_p
@@ -228,8 +230,11 @@ class RequestTrajectoryServer:
 
         # Stopping conditions
         x_y_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2))
-        if x_y_error < precision_o and  error_orient[2] < z_threshold:
+        if x_y_error < precision_o and  abs(rot_vector[2]) < z_threshold:
             reached_orientation = True
+            if max(error_orient) > max(self.old_error):
+                error_orient = [0.0, 0.0, 0.0]
+        self.old_error = error_orient
 
         return error_orient, reached_orientation
 
@@ -329,7 +334,6 @@ class RequestTrajectoryServer:
         # Variable initialization
         self._feedback.sim_trajectory = [self.current_state]
         error_orient = np.array([0.0, 0.0, 0.0])
-        limit_p = [abs(x) for x in error_posit]
         eef_pose_array = PoseArray()
         reached_orientation = False
         self.trajectory_length = 0.0
@@ -408,7 +412,7 @@ class RequestTrajectoryServer:
                 self.abort_goal('infeasible')
                 break
 
-            for x,vel in enumerate(Opt[4:(self.nJoints)]):
+            for x, vel in enumerate(Opt[4:self.nJoints]):
                 velocity_msg.velocity[self.start_arm[x]] = vel
 
             velocity_msg.velocity[self.triang_list_pos] = Opt[3]
@@ -470,8 +474,9 @@ class RequestTrajectoryServer:
             # print 'joint_vel: ', Opt[:-6]
             # print 'error pos: ', error_posit / self.prop_gain
             # print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
+            # print 'goal ori : [%.3f %.3f %.3f] '%(self.eef_pose.p[0],self.eef_pose.p[1], self.eef_pose.p[2])
             # print 'slack    : ', Opt[-6:]
-        self.final_error = sqrt(pow(error_posit[0],2) + pow(error_posit[1],2) + pow(error_posit[2],2))
+        self.final_error = sqrt(pow(error_posit[0], 2) + pow(error_posit[1], 2) + pow(error_posit[2], 2))
 
         eef_pose_array.header.stamp = rospy.get_rostime()
         eef_pose_array.header.frame_id = self.gripper
@@ -566,7 +571,6 @@ class RequestTrajectoryServer:
         plt.cla()#'''
 
         toc = rospy.get_rostime()
-        print (toc.nsecs - tic.nsecs) / 10e9, 'sec Elapsed'
         print (toc.secs - tic.secs), 'sec Elapsed'
 
         return 0
@@ -644,13 +648,13 @@ class RequestTrajectoryServer:
         for n, joint in enumerate(joint_posit):
             joint_posit[n] = joint_val[n]
         kinem_status = self.kdl_fk_solver.JntToCart(joint_posit, self.eef_pose)
-        if kinem_status>=0:
+        if kinem_status >=0:
             pass
         else:
             rospy.logerr('Could not calculate forward kinematics')
         return self.eef_pose
 
-    def acceleration_limits(self,joint_vel):
+    def acceleration_limits(self, joint_vel):
         ac_lim_lower = np.empty(0)
         ac_lim_upper = np.empty(0)
         for n,a in enumerate(self.accel_max):
@@ -670,7 +674,7 @@ class RequestTrajectoryServer:
         jac_array = np.empty(0)
         for row in range(jacobian.rows()):
             for col in range(jacobian.columns()):
-                jac_array = np.hstack((jac_array, jacobian[row,col]))
+                jac_array = np.hstack((jac_array, jacobian[row, col]))
         jac_array = np.reshape(jac_array, (jacobian.rows(), jacobian.columns()))
         return jac_array
 
@@ -695,7 +699,7 @@ class RequestTrajectoryServer:
         if dist >= b:
             self.far = True
             jweights = np.ones(w_len)*inactive_joint
-            jweights[3]-= 1 # Triangle base
+            jweights[3] -= 1  # Triangle base
             # Base active
             jweights[0], jweights[1] = active_joint/2, active_joint/2
             if abs(error_posit[0]) > b:
@@ -707,7 +711,7 @@ class RequestTrajectoryServer:
             # Arm not active
             for x in range(size_jac[0]):
                 for y in range(size_jac[1]):
-                    self.A[x,y] = 0
+                    self.A[x, y] = 0
             # Base active
             self.A[0, 0] = 1
             self.A[1, 1] = 1
@@ -721,11 +725,11 @@ class RequestTrajectoryServer:
             self.A[0, 0] = 0.5
             self.A[1, 1] = 0.5
             # Base joints will have lower weights when far from the goal
-            for n,w in enumerate(jweights):
+            for n, w in enumerate(jweights):
                 new_w = (inactive_joint - active_joint)*(dist - a)/(b - a) + active_joint
                 jweights[n] = new_w
-            jweights[0] = ((active_joint -inactive_joint)*(dist - a)/(b - a) + inactive_joint)
-            jweights[1] = ((active_joint -inactive_joint)*(dist - a)/(b - a) + inactive_joint)
+            jweights[0] = ((active_joint - inactive_joint)*(dist - a)/(b - a) + inactive_joint)
+            jweights[1] = ((active_joint - inactive_joint)*(dist - a)/(b - a) + inactive_joint)
 
         # if the robot is close to the goal
         else:
@@ -738,12 +742,12 @@ class RequestTrajectoryServer:
             jweights[0] = inactive_joint
             jweights[1] = inactive_joint
             # Triangle base weight
-            jweights[3] = (active_joint -inactive_joint)*(abs(error_posit[2]) - 0.0)/(0.6 - 0.0) + inactive_joint
+            jweights[3] = (active_joint - inactive_joint)*(abs(error_posit[2]) - 0.0)/(0.6 - 0.0) + inactive_joint
             if jweights[3] < active_joint:
                 jweights[3] = active_joint
             # self.sweights = np.ones(len(self.sweights))*inactive_joint/2
-            self.A[0, 0] = 0.1
-            self.A[1, 1] = 0.1
+            self.A[0, 0] = 0.2
+            self.A[1, 1] = 0.2
 
         jweights[2] = inactive_joint*10
 
@@ -756,7 +760,7 @@ class RequestTrajectoryServer:
         print '-- Slack weight: [%.2f, %.2f]'%(self.sweights[0], self.sweights[3])'''
 
     def get_trajectory_length(self, eef_position, trajectory_length):
-        dist = sqrt(pow(eef_position[0],2) + pow(eef_position[1],2) + pow(eef_position[2],2))
+        dist = sqrt(pow(eef_position[0], 2) + pow(eef_position[1], 2) + pow(eef_position[2], 2))
         trajectory_length += abs(dist - self.old_dist)
         self.old_dist = dist
         return trajectory_length
@@ -766,7 +770,7 @@ def main():
     try:
         rospy.init_node('request_trajectory_server')
         rospy.Rate(200)
-        a = RequestTrajectoryServer()
+        RequestTrajectoryServer()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
