@@ -20,10 +20,8 @@ import rospy
 from iai_trajectory_generation_boxy.msg import ProjectedGraspingActionResult
 from iai_trajectory_generation_boxy.msg import PIControllerError
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 import reset_naive_sim
 import threading
-import copy
 
 
 class VelCommands:
@@ -33,12 +31,15 @@ class VelCommands:
         self.joint_vel = {}
         self.received = False
         self.v_lock = threading.Lock()
-        self.pub = rospy.Publisher('whole_body_controller/velocity_cmd', JointState, queue_size=10)
-        self.pub_error = rospy.Publisher('controller_values', PIController, queue_size=10)
-        self.pub_velocity = rospy.Publisher('/simulator/commands', JointState, queue_size=3)
+        self.pub_commands = rospy.Publisher('whole_body_controller/velocity_cmd', JointState, queue_size=10)
+        self.pub_error = rospy.Publisher('controller_values', PIControllerError, queue_size=10)
+        self.pub_simulator = rospy.Publisher('/simulator/commands', JointState, queue_size=3)
 
         rospy.Subscriber("projected_grasping_server/result", ProjectedGraspingActionResult, self.traj_callback)
+        # self.joint_list = rospy.Subscriber('/simulate/joint_states', JointState, self.joint_callback)
         self.joint_list = rospy.Subscriber('/joint_states', JointState, self.joint_callback)
+
+        rospy.loginfo('PI controller: Waiting for trajectory')
 
     def joint_callback(self, joints):
         self.joint_names = joints.name
@@ -61,15 +62,16 @@ class VelCommands:
             rospy.sleep(0.2)
         else:
             reset_naive_sim.reset_simulator()
-            print "Trajectory received"
+
+            rospy.loginfo("PI controller: Trajectory received")
             self.received = False
             desired_pos = {}
             desired_vel = {}
             num_joints = len(self.trajectory[0].name)
             self.P_vel = [0]*num_joints
             self.P_pos = [10]*num_joints
-            #self.P_pos[0] = self.P_pos[1] = 0.7
-            #self.P_vel[0] = self.P_vel[1] = 0.4
+            # self.P_pos[0] = self.P_pos[1] = 0.7
+            # self.P_vel[0] = self.P_vel[1] = 0.4
             self.I_vel = [0.0]*num_joints
             self.I_pos = [1.0]*num_joints
             self.integrator_max = 10
@@ -91,7 +93,7 @@ class VelCommands:
 
                 now = rospy.Time.now()
                 time_elapsed = now - start_time
-                cont_values = PIController()
+                cont_values = PIControllerError()
 
                 while time_elapsed <= (traj_stamp - traj_init_time):
                     cont_values.des_p = [0.0] * len(joint_names)
@@ -133,14 +135,14 @@ class VelCommands:
                                 print '------ Skipping publish', joint
                             cont_values.des_p[n] = desired_pos[joint]
                             cont_values.error_p[n] = error_pos
-                            cont_values.error_vel[n] = error_vel
+                            cont_values.error_vel[n] = self.joint_vel[joint]
                             cont_values.integral_p[n] = integrator_pos[n]
                             cont_values.integral_vel[n] = integrator_vel[n]
 
                     boxy_command.header.stamp = now
-                    # self.pub.publish(boxy_command)
+                    self.pub_commands.publish(boxy_command)
                     self.pub_error.publish(cont_values)
-                    self.pub_velocity.publish(boxy_command)
+                    # self.pub_velocity.publish(boxy_command)
                     time_elapsed = rospy.Time.now() - start_time
                     self.r.sleep()
 
