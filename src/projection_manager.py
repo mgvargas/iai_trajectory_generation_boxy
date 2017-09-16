@@ -96,8 +96,9 @@ class SelectGoal:
         self.all_joint_names = data.name
         self.joint_values = data.position
         self.odom_joints = {}
+        self.neck_joint = [0.0]*7
         # Getting current joint values of the arms
-        a = b = 0
+        a, b, c = 0, 0, 0
         for i, x in enumerate(self.all_joint_names):
             if 'left_arm' in x:
                 if a < self.nJoints:
@@ -115,6 +116,9 @@ class SelectGoal:
                 self.odom_joints['odom_y_joint'] = self.joint_values[i]
             elif x == 'odom_z_joint':
                 self.odom_joints['odom_z_joint'] = self.joint_values[i]
+            elif 'neck' in x:
+                self.neck_joint[c] = self.joint_values[i]
+                c += 1
 
     def arms_chain(self):
         self.get_urdf()
@@ -377,10 +381,14 @@ class SelectGoal:
                                                     links=False, fixed=False)
             left_names = self.urdf_model.get_chain('triangle_base_link', 'left_gripper_tool_frame',
                                                    links=False, fixed=False)
+            neck_names = self.urdf_model.get_chain('neck_base_link', 'neck_wrist_3_link',
+                                                   links=False, fixed=False)
             for n, val in enumerate(left_names):
                 joint_w_values.update({val: self.left_jnt_pos[n]})
             for n, val in enumerate(right_names):
                 joint_w_values.update({val: self.right_jnt_pos[n]})
+            for n, val in enumerate(neck_names):
+                joint_w_values.update({val: self.neck_joint[n]})
 
             # controlled_joint_names = self.urdf_model.get_chain('odom', self.frame_end, links=False, fixed=False)
             # data['controlled_joints'] = controlled_joint_names
@@ -393,6 +401,7 @@ class SelectGoal:
 
             set_start_config = rospy.get_param('set_start_config')
             if set_start_config:
+                print
                 data['start_config'] = joint_w_values
 
             # Write file
@@ -627,13 +636,13 @@ def request(receive_goal, projection_class, selected_trajectory):
         # Distance to joint limits
         projection_class.dist_to_joint_limits(arm)
 
-        traj = Trajectory()
         trajectories = []
         trajectories_length = []
         manipulability = []
         pos_error = []
         found_traj = 0
-        for x in range(4):
+        for x in range(5):
+            traj = Trajectory()
             # Plot EEF trajectory in RVIZ
             test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
             trajectory_projection, status = projection_class.call_gp_action()
@@ -658,7 +667,7 @@ def request(receive_goal, projection_class, selected_trajectory):
         if len(trajectories) > 0:
             selected = trajectory_evaluation_service(trajectories, manipulability, trajectories_length, object_to_grasp,
                                                      pos_error)
-            if not selected is -1:
+            if selected.selected_trajectory != -1:
                 selected_trajectory = trajectories[selected.selected_trajectory]
                 rospy.loginfo(selected)
             else:
@@ -667,7 +676,6 @@ def request(receive_goal, projection_class, selected_trajectory):
         else:
             rospy.logerr('Trajectory generation failed')
             receive_goal.cancel_cb(0)
-
     else:
         rospy.sleep(0.3)
     return selected_trajectory
