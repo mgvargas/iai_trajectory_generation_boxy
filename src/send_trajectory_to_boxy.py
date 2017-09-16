@@ -69,11 +69,11 @@ class VelCommands:
             desired_vel = {}
             num_joints = len(self.trajectory[0].name)
             self.P_vel = [0]*num_joints
-            self.P_pos = [10]*num_joints
+            self.P_pos = [4.8]*num_joints
             # self.P_pos[0] = self.P_pos[1] = 0.7
             # self.P_vel[0] = self.P_vel[1] = 0.4
             self.I_vel = [0.0]*num_joints
-            self.I_pos = [1.0]*num_joints
+            self.I_pos = [0.1]*num_joints
             self.integrator_max = 10
             traj_init_time = self.trajectory[0].header.stamp
             start_time = rospy.Time.now()
@@ -140,6 +140,7 @@ class VelCommands:
                             cont_values.integral_vel[n] = integrator_vel[n]
 
                     boxy_command.header.stamp = now
+
                     self.pub_commands.publish(boxy_command)
                     self.pub_error.publish(cont_values)
                     # self.pub_velocity.publish(boxy_command)
