@@ -57,7 +57,10 @@ def q_norm(q):
     norm = math.pow(w, 2) + math.pow(x, 2) + math.pow(y, 2) + math.pow(z, 2)
     return norm
 
-
+def normalize_quat(q):
+    q_array = np.array(q)
+    norm = q_norm(q)
+    return q_array/norm
 
 def q_inv(q1):
     x1, y1, z1, w1 = q1
@@ -68,12 +71,42 @@ def q_inv(q1):
     z = -z1 / d
     return np.array([x, y, z, w])
 
+def quat_to_axisangle(q):
+    x, y, z, w = q
+    if w > 1:
+        x, y, z, w = normalize_quat(q)
+    theta = 2 * math.acos(w)
+    s = math.sqrt(1 - w * w)
+    if s < 0.001:
+        ax = x
+        ay = y
+        az = z
+    else:
+        ax = x / s
+        ay = y / s
+        az = z / s
+    return np.array([ax, ay, az, theta])
 
-def slerp(self, q0, q1, t=1.0):
+
+def quaternion_error(q_e, q_d):
+    # q_e = current orientation, q_d = desired orientation
+    x, y, z, w_d = q_d
+    # Split quaternions in vector and w
+    r_d = np.array([q_d[0], q_d[1], q_d[2]])
+    r_e = np.array([q_e[0], q_e[1], q_e[2]])
+    w_e = q_e[3]
+    # Skew symmetric matrix
+    s = np.array([0, -z, y, z, 0, x, -y, x, 0]).reshape(3,3)
+
+    error = w_e * r_d - w_d * r_e - s.dot(r_d)
+    return error
+
+
+def slerp(q0, q1, t=1.0):
     # Interpolation between 2 quaternions, from 0 <= t <= 1
     dot_threshold = 0.9995
-    q0_norm = self.normalize_quat(q0)
-    q1_norm = self.normalize_quat(q1)
+    q0_norm = normalize_quat(q0)
+    q1_norm = normalize_quat(q1)
     dot = q0_norm[0] * q1_norm[0] + q0_norm[1] * q1_norm[1] + q0_norm[2] * q1_norm[2] + q0_norm[3] * q1_norm[3]
 
     # if quaternions are too close, do linear interpolation
