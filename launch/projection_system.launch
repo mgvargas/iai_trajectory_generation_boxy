@@ -3,7 +3,7 @@
 
     <!-- Parameters NOTE: if arg Boxy is true, arg sim must be false -->
     <arg name="debug" default="false" />
-    <arg name="sim" default="true" />
+    <arg name="sim" default="true" /> <!-- Object detection -->
     <arg name="rviz" default="true" />
     <arg name="naive" default="true" />
     <arg name="boxy" default="false" />
@@ -19,8 +19,6 @@
         <arg name="rviz" value="$(arg rviz)"/>
     	<arg name="boxy" value="$(arg boxy)"/>
     </include>
-
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
     <!-- Simulation (publishes markers in tf) -->
     <!--include file="$(find iai_boxy_description)/launch/upload_boxy.launch" /-->
@@ -44,6 +42,7 @@
     <group unless="$(arg boxy)">
         <param name="joint_topic" type="string" value="joint_states" />
         <param name="set_start_config" type="bool" value="false" />
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
     </group>
 
     <node pkg="tf2_ros" type="buffer_server" name="tf2_buffer_server" />
@@ -61,7 +60,7 @@
 
     <!-- Send trajectory to the robot -->
     <!--group if="$(arg boxy)">
-           <node name="send_commands" pkg="iai_trajectory_generation_boxy" type="send_command_to_boxy.py"
+           <node name="send_trajectory" pkg="iai_trajectory_generation_boxy" type="send_trajectory_to_boxy.py
               respawn="false" output="screen"/>
     </group-->
 

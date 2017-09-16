@@ -184,7 +184,7 @@ def four():
 
 def five():
     joints_w_values = {
-        'odom_x_joint':-1.5,
+        'odom_x_joint': -1.5,
         'odom_y_joint': 0.6,
         'odom_z_joint': -0.07,
         'left_arm_0_joint': -0.2602758811845149,
@@ -242,10 +242,10 @@ def six():
 
 def seven():
     joints_w_values = {
-        'odom_x_joint': -1.2, #2.2
-        'odom_y_joint': 0.0, #0.6
+        'odom_x_joint': -1.2,  # 2.2
+        'odom_y_joint': 0.0,  # 0.6
         'odom_z_joint': -0.07,
-        'left_arm_0_joint':-1.5939017921498873,
+        'left_arm_0_joint': -1.5939017921498873,
         'left_arm_1_joint': 0.8390743106005174,
         'left_arm_2_joint': 0.0854756106501257,
         'left_arm_3_joint': -1.358306360009408,
@@ -259,7 +259,7 @@ def seven():
         'right_arm_4_joint': -1.3963310121304198,
         'right_arm_5_joint': 1.632141298729036,
         'right_arm_6_joint': -0.66445876942373,
-        'triangle_base_joint':-0.34682312271737925,
+        'triangle_base_joint': -0.34682312271737925,
         'neck_shoulder_lift_joint': -3.0928,
         'neck_shoulder_pan_joint': -1.67144,
         'neck_wrist_1_joint': 1.23036,
@@ -267,6 +267,7 @@ def seven():
         'neck_wrist_3_joint': 0.04506
     }
     return joints_w_values
+
 
 def eight():
     joints_w_values = {

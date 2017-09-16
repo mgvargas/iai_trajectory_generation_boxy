@@ -23,6 +23,7 @@
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 #include <iai_trajectory_generation_boxy/CollisionEvaluation.h>
+#include <iai_trajectory_generation_boxy/Trajectory.h>
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>

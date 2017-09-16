@@ -120,9 +120,9 @@ class TrajEvaluation:
                              + w_collision * collision_dist[n] / min_collision_distance
                              + w_man *( max_manip - manipulability[n]) + w_error * pos_error[n] / max_error)
 
-                text_line.append( '& ' + str(round(length*100,2)) + ' & ' + str(round(vel_change[n],3)) + ' & '
-                                  + str(round(acc_change[n],3)) + ' & ' + str(round(collision_dist[n]*100,2)) +
-                                  ' & ' + str(round(manipulability[n],3)) + ' & ' + str(round(pos_error[n],3))
+                text_line.append( '& ' + str(round(length*100,2)) + ' & ' + str(round(vel_change[n]*100,3)) + ' & '
+                                  + str(round(acc_change[n]*100,3)) + ' & ' + str(round(collision_dist[n]*100,2)) +
+                                  ' & ' + str(round(manipulability[n],3)) + ' & ' + str(round(pos_error[n]*10,2))
                                   + ' & ' + str(round(score[n],3)) + ' \\ \n')
 
         for x in range(5-num_traj):
@@ -154,6 +154,8 @@ class TrajEvaluation:
         vel_change = []
         collision_dist = []
         rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
+        # Get collision objects
+        obj_list = self.select_objects()
 
         # Calculate change in velocity, in acceleration and iter of each trajectory
         for trajectory in request.trajectories:
@@ -161,8 +163,6 @@ class TrajEvaluation:
             if vel:
                 vel_change.append(vel)
                 acc_change.append(self.acceleration_change(acc, l))
-            obj_list = self.select_objects()
-
             try:
                 dist = self.collision_service(trajectory, obj_list)
                 collision_dist.append(dist.min_collision_distance)

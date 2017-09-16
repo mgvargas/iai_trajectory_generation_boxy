@@ -11,8 +11,8 @@ for VAR in {0..7}
 do
     echo "Setting initial robot config " $VAR
     python set_initial_pose.py $VAR
-    sleep 2
-    #roslaunch iai_trajectory_generation_boxy projection_system.launch
+    sleep 1
+    echo "\multicolumn{8}{|c|}{Initial robot configuration $VAR} \ \hline" >> "/home/mine/obj_grasp_ws/src/iai_trajectory_generation_boxy/test_scores/scores.tex"
     for OBJ in 'cup' 'mondamin' 'knorr_tomate'
     do
         ((++i))
@@ -32,8 +32,15 @@ goal_id:
   id: $OBJID
 goal:
   object: "$OBJ
-        sleep 1.5m
+        sleep 1m
+		  sleep 15
+		  if [ "$OBJ" = "knorr_tomate" ]; then
+				python set_initial_pose.py $(($VAR+1))
+		  fi
+		  sleep 2m
     done
+	 
+	 
     #pkill roslaunch
 done
 

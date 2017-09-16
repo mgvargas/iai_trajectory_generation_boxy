@@ -15,14 +15,19 @@
     <group name="right_arm">
         <chain base_link="odom" tip_link="right_gripper_tool_frame" />
     </group>
+    <group name="neck">
+        <chain base_link="odom" tip_link="head_mount_kinect2_rgb_optical_frame" />
+    </group>
     <group name="whole_robot">
         <group name="left_arm" />
         <group name="right_arm" />
+		  <group name="neck" />
     </group>
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="virtual_joint" type="fixed" parent_frame="map" child_link="odom" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_footprint" link2="base_link" reason="Adjacent" />
+	 <disable_collisions link1="left_arm_5_link" link2="left_arm_cabling_adaptor_link" reason="Adjacent" />
     <disable_collisions link1="base_footprint" link2="calib_left_arm_base_link" reason="Never" />
     <disable_collisions link1="base_footprint" link2="calib_right_arm_base_link" reason="Never" />
     <disable_collisions link1="base_footprint" link2="head_mount_kinect2_rgb_optical_frame" reason="Never" />
