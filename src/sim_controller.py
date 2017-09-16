@@ -18,7 +18,7 @@
 
 import numpy as np
 import sys
-from math import radians, pow, sqrt, pi
+from math import radians, pow, sqrt
 from qpoases import PyOptions as Options
 from qpoases import PyPrintLevel as PrintLevel
 from qpoases import PyReturnValue as returnValue
@@ -35,7 +35,8 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseArray, Pose
 from iai_naive_kinematics_sim.msg import ProjectionClock
-from iai_trajectory_generation_boxy.msg import RequestTrajectoryAction, RequestTrajectoryResult, RequestTrajectoryFeedback
+from iai_trajectory_generation_boxy.msg import RequestTrajectoryAction, RequestTrajectoryResult
+from iai_trajectory_generation_boxy.msg import RequestTrajectoryFeedback
 from sensor_msgs.msg import JointState
 from tf.transformations import quaternion_slerp, quaternion_from_euler, euler_from_quaternion
 from urdf_parser_py.urdf import URDF
@@ -65,7 +66,7 @@ class RequestTrajectoryServer:
         self.joint_values_kdl = kdl.JntArray(self.nJoints)
         self.eef_pose = kdl.Frame()
         self.far = False
-        self.old_error = [1.0, 1.0, 1.0]
+        # self.old_error = [1.0, 1.0, 1.0]
         # TODO: find appropriate max acceleration
         self.accel_max = np.array([0.3, 0.3, 0.3, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
         #self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
@@ -89,7 +90,7 @@ class RequestTrajectoryServer:
         self.all_joint_values = data.position
         self.start_arm = [0]*(self.nJoints-1)
         self.start_odom = [0]*3
-        a, n = 4, 0#1
+        a, n = 4, 0
         if self.arm == 'right':
             arm = 'right_arm'
             self.gripper = self.grip_right
@@ -105,14 +106,14 @@ class RequestTrajectoryServer:
                     self.start_arm[a-4] = i
                     a += 1
                 except IndexError:
-                    index_error = True
+                    pass
             elif 'triangle_base' in x:
                 try:
                     self.joint_values[3] = self.all_joint_values[i]
                     self.joint_values_kdl[3] = self.all_joint_values[i]
                     self.triang_list_pos = i
                 except IndexError:
-                    index_error = True
+                    pass
             elif 'odom' in x:
                 try:
                     self.joint_values[n] = self.all_joint_values[i]
@@ -120,7 +121,7 @@ class RequestTrajectoryServer:
                     self.start_odom[n] = i
                     n += 1
                 except IndexError:
-                    index_error = True
+                    pass
 
         try:
             self.calc_eef_position(self.joint_values)
@@ -147,7 +148,7 @@ class RequestTrajectoryServer:
                       % (self._action_name, self.pose_name))
         return 0
 
-    def cancel_cb(self, cb):
+    def cancel_cb(self, importcb):
         self.active_goal_flag = False
         self.goal_received = False
         self.action_server.internal_cancel_callback(goal_id=self.goal_id)
@@ -186,8 +187,8 @@ class RequestTrajectoryServer:
     def calc_posit_error(self, error_posit):
         self.reach_position = False
         # Error threshold
-        threshold = 0.025 * self.prop_gain
-        precision = 0.025 # Allowed error
+        threshold = 0.02 * self.prop_gain
+        precision = 0.015  # Allowed error
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
@@ -211,12 +212,13 @@ class RequestTrajectoryServer:
 
     def calc_orient_error(self, eef_orient, goal_orient, thresh, limit_p):
         # Error threshold
-        precision_o = 0.17 # 10 deg tolerance
-        z_threshold = 0.4 # 23 deg tolerance
+        precision_o = 0.17  # 10 deg tolerance
+        z_threshold = 0.36  # 20 deg tolerance
         reached_orientation = False
+        p = self.prop_gain_orient
 
         eef_inv = qo.q_inv(eef_orient)
-        rot_vector = qo.q_mult(eef_inv, goal_orient)
+        rot_vector = qo.quat_to_axisangle(qo.q_mult(eef_inv, goal_orient))
         rot_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2) + pow(rot_vector[2], 2))
 
         if (thresh - rot_error) >= 0:
@@ -227,16 +229,19 @@ class RequestTrajectoryServer:
         slerp = quaternion_slerp(eef_orient, goal_orient, scaling)
         quat_error = qo.q_mult(slerp, eef_inv)
         error_orient = euler_from_quaternion(quat_error)
+        # error_orient = qo.quaternion_error(slerp, eef_orient)
 
         # Stopping conditions
-        x_y_error = sqrt(pow(rot_vector[0], 2) + pow(rot_vector[1], 2))
-        if x_y_error < precision_o and  abs(rot_vector[2]) < z_threshold:
+        x_y_error = sqrt(pow(error_orient[0], 2) + pow(error_orient[1], 2))
+        if x_y_error < precision_o and abs(error_orient[2]) < z_threshold:
             reached_orientation = True
-            if max(error_orient) > max(self.old_error):
+            '''if max(error_orient) > max(self.old_error):
                 error_orient = [0.0, 0.0, 0.0]
-        self.old_error = error_orient
+        self.old_error = error_orient'''
 
-        return error_orient, reached_orientation
+        error_w_gain = [error_orient[0] * p, error_orient[1] * p, error_orient[2] * p]
+
+        return error_w_gain, reached_orientation
 
     def qpoases_config(self):
         # QPOases needs as config parameters:
@@ -252,8 +257,8 @@ class RequestTrajectoryServer:
         slack_limit = 400
         self.n_slack = 6
         self.prop_gain = 4
-        self.prop_gain_orient = 1.5
-        self.sweights = np.ones((self.n_slack))*4
+        self.prop_gain_orient = 2
+        self.sweights = np.ones(self.n_slack)*4
 
         # Joint limits: self.joint_limits_upper, self.joint_limits_lower
         self.kinem_chain(self.gripper)
@@ -266,8 +271,9 @@ class RequestTrajectoryServer:
         # Error in EEF orientation, if error in Z > 90 deg, rotate goal 180 deg
         self.calc_eef_position(self.joint_values)
         self.goal_quat = np.array([self.goal_pose.transform.rotation.x, self.goal_pose.transform.rotation.y,
-                         self.goal_pose.transform.rotation.z, self.goal_pose.transform.rotation.w])
-        self.goal_orient_euler= euler_from_quaternion(self.goal_quat)
+                                   self.goal_pose.transform.rotation.z, self.goal_pose.transform.rotation.w])
+
+        self.goal_orient_euler = euler_from_quaternion(self.goal_quat)
 
         eef_orient_quat = qo.rotation_to_quaternion(self.eef_pose.M)
 
@@ -319,7 +325,7 @@ class RequestTrajectoryServer:
         self.g = np.zeros(self.nJoints+self.n_slack)
 
         # Boundary vectors of the state vector
-        slack_vel = np.ones((self.n_slack))*slack_limit
+        slack_vel = np.ones(self.n_slack) * slack_limit
         self.lb = np.hstack((-self.joint_vel_limits, -slack_vel))
         self.ub = np.hstack((self.joint_vel_limits, slack_vel))
         # print 'lb ', np.shape(self.lb), '\n', self.lb
@@ -471,10 +477,12 @@ class RequestTrajectoryServer:
             t = np.hstack((t, i))#'''
 
             # print '\n iter: ', i
+            # goal = euler_from_quaternion(self.goal_quat)
             # print 'joint_vel: ', Opt[:-6]
             # print 'error pos: ', error_posit / self.prop_gain
+            # print 'eef ori: [%.3f %.3f %.3f] '%(self.eef_pose.p[0],self.eef_pose.p[1], self.eef_pose.p[2])
             # print 'ori error: [%.3f %.3f %.3f] '%(error_orient[0], error_orient[1], error_orient[2])
-            # print 'goal ori : [%.3f %.3f %.3f] '%(self.eef_pose.p[0],self.eef_pose.p[1], self.eef_pose.p[2])
+            # print 'goal ori : [%.3f %.3f %.3f] '%(goal[0], goal[1], goal[2])
             # print 'slack    : ', Opt[-6:]
         self.final_error = sqrt(pow(error_posit[0], 2) + pow(error_posit[1], 2) + pow(error_posit[2], 2))
 
@@ -494,17 +502,17 @@ class RequestTrajectoryServer:
         plt.grid(True)
         plt.legend()
         # plt.show()
-        tikz_save('weights.tex', figureheight='6cm', figurewidth='16cm')
+        tikz_save('weights.tex', figureheight='5cm', figurewidth='16cm')
         plt.cla()
 
         plt.plot(t, error, 'k', lw=2)
         plt.xlabel('Iterations')
-        plt.ylabel('Error [m]')
+        plt.ylabel('Position Error [m]')
         plt.title('Position Error')
         plt.grid(True)
         plt.legend()
         # plt.show()
-        tikz_save('error.tex', figureheight='6cm', figurewidth='16cm')
+        tikz_save('error.tex', figureheight='4cm', figurewidth='16cm')
         plt.cla()#'''
 
         '''for x in range(8+3):
@@ -522,12 +530,12 @@ class RequestTrajectoryServer:
         '''plt.plot(t, pos[0], 'r--', lw=3, label='x')
         plt.plot(t, pos[1], 'b', lw=2, label='y')
         plt.xlabel('Iterations')
-        plt.ylabel('Position')
+        plt.ylabel('Base Position [m]')
         plt.title('Trajectory of the base [m]')
         plt.grid(True)
         plt.legend()
         # plt.show()
-        tikz_save('base_pos.tex', figureheight='6cm', figurewidth='16cm')
+        tikz_save('base_pos.tex', figureheight='5cm', figurewidth='16cm')
         plt.cla()
         step = 2
         plt.plot(t[0:-1:step], pos[3][0:-1:step], 'o', markersize=0.5, lw=3, label='j0')
@@ -542,17 +550,17 @@ class RequestTrajectoryServer:
         plt.title('Trajectory of the joints')
         plt.grid(True)
         plt.legend(loc='upper left')
-        tikz_save('joint_pos.tex', figureheight='10cm', figurewidth='16cm')
+        tikz_save('joint_pos.tex', figureheight='8cm', figurewidth='16cm')
         plt.cla()
 
         plt.plot(t, vel_p[0], 'r--', lw=3, label='x')
         plt.plot(t, vel_p[1], 'b',lw=2, label='y')
         plt.xlabel('Iterations')
-        plt.ylabel('Velocity [m/sec]')
+        plt.ylabel('Base Velocity [m/sec]')
         plt.title('Velocity of the base')
         plt.grid(True)
         plt.legend()
-        tikz_save('base_vel.tex', figureheight='6cm', figurewidth='16cm')
+        tikz_save('base_vel.tex', figureheight='5cm', figurewidth='16cm')
         plt.cla()
 
         plt.plot(t[0:-1:step], vel_p[3][0:-1:step], 'o', markersize=0.5, lw=3, label='j0')
@@ -563,11 +571,11 @@ class RequestTrajectoryServer:
         plt.plot(t, vel_p[8], '--', lw=3, label='j5')
         plt.plot(t, vel_p[9], lw=3, label='j6')
         plt.xlabel('Iterations')
-        plt.ylabel('Velocity [rad/sec]')
+        plt.ylabel('Arms Joints Velocity [rad/sec]')
         plt.title("Velocity of the arm's joints")
         plt.legend(loc='upper left')
         plt.grid(True)
-        tikz_save('joint_vel.tex', figureheight='10cm', figurewidth='16cm')
+        tikz_save('joint_vel.tex', figureheight='8cm', figurewidth='16cm')
         plt.cla()#'''
 
         toc = rospy.get_rostime()
@@ -657,10 +665,10 @@ class RequestTrajectoryServer:
     def acceleration_limits(self, joint_vel):
         ac_lim_lower = np.empty(0)
         ac_lim_upper = np.empty(0)
-        for n,a in enumerate(self.accel_max):
+        for n, a in enumerate(self.accel_max):
             v = self.joint_vel_limits[n]
-            ac_lower = ((v - a)/ v) * joint_vel[n] - a
-            ac_upper = ((v - a)/ v) * joint_vel[n] + a
+            ac_lower = ((v - a) / v) * joint_vel[n] - a
+            ac_upper = ((v - a) / v) * joint_vel[n] + a
             ac_lim_lower = np.hstack((ac_lim_lower, ac_lower))
             ac_lim_upper = np.hstack((ac_lim_upper, ac_upper))
         return ac_lim_lower, ac_lim_upper
