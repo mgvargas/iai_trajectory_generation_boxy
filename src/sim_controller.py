@@ -68,7 +68,7 @@ class RequestTrajectoryServer:
         self.far = False
         # self.old_error = [1.0, 1.0, 1.0]
         # TODO: find appropriate max acceleration
-        self.accel_max = np.array([0.3, 0.3, 0.3, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
+        self.accel_max = np.array([0.1, 0.1, 0.1, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
         #self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
 
         joint_topic = rospy.get_param('joint_topic')
@@ -188,7 +188,7 @@ class RequestTrajectoryServer:
         self.reach_position = False
         # Error threshold
         threshold = 0.02 * self.prop_gain
-        precision = 0.015  # Allowed error
+        precision = 0.02  # Allowed error
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
@@ -732,6 +732,7 @@ class RequestTrajectoryServer:
                     self.A[x, y] = self.jacobian[x, y]
             self.A[0, 0] = 0.5
             self.A[1, 1] = 0.5
+
             # Base joints will have lower weights when far from the goal
             for n, w in enumerate(jweights):
                 new_w = (inactive_joint - active_joint)*(dist - a)/(b - a) + active_joint
@@ -753,7 +754,6 @@ class RequestTrajectoryServer:
             jweights[3] = (active_joint - inactive_joint)*(abs(error_posit[2]) - 0.0)/(0.6 - 0.0) + inactive_joint
             if jweights[3] < active_joint:
                 jweights[3] = active_joint
-            # self.sweights = np.ones(len(self.sweights))*inactive_joint/2
             self.A[0, 0] = 0.2
             self.A[1, 1] = 0.2
 

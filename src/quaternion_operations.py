@@ -75,7 +75,10 @@ def quat_to_axisangle(q):
     x, y, z, w = q
     if w > 1:
         x, y, z, w = normalize_quat(q)
-    theta = 2 * math.acos(w)
+    try:
+        theta = 2 * math.acos(w)
+    except ValueError:
+        theta = 2 * math.acos(w + 0.01)
     s = math.sqrt(1 - w * w)
     if s < 0.001:
         ax = x
