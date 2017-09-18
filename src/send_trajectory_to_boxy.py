@@ -22,6 +22,12 @@ from iai_trajectory_generation_boxy.msg import PIControllerError
 from sensor_msgs.msg import JointState
 import reset_naive_sim
 import threading
+import rospkg
+import yaml
+import lift_object
+import test_plotter
+from random import randrange
+from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
 
 
 class VelCommands:
@@ -30,6 +36,7 @@ class VelCommands:
         self.joint_pos = {}
         self.joint_vel = {}
         self.received = False
+
         self.v_lock = threading.Lock()
         self.pub_commands = rospy.Publisher('whole_body_controller/velocity_cmd', JointState, queue_size=10)
         self.pub_error = rospy.Publisher('controller_values', PIControllerError, queue_size=10)
@@ -68,9 +75,11 @@ class VelCommands:
             desired_pos = {}
             desired_vel = {}
             num_joints = len(self.trajectory[0].name)
+
+            # Controller gains
             self.P_vel = [0]*num_joints
             self.P_pos = [4.8]*num_joints
-            # self.P_pos[0] = self.P_pos[1] = 0.7
+            self.P_pos[0] = self.P_pos[1] = 2.0
             # self.P_vel[0] = self.P_vel[1] = 0.4
             self.I_vel = [0.0]*num_joints
             self.I_pos = [0.1]*num_joints
@@ -78,8 +87,9 @@ class VelCommands:
             traj_init_time = self.trajectory[0].header.stamp
             start_time = rospy.Time.now()
 
+            # test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
+
             for step in self.trajectory:
-                boxy_command = JointState()
                 integrator_pos = [0.0] * num_joints
                 integrator_vel = [0.0] * num_joints
                 traj_stamp = step.header.stamp
@@ -96,6 +106,7 @@ class VelCommands:
                 cont_values = PIControllerError()
 
                 while time_elapsed <= (traj_stamp - traj_init_time):
+                    boxy_command = JointState()
                     cont_values.des_p = [0.0] * len(joint_names)
                     cont_values.real_p = [0.0] * len(joint_names)
                     cont_values.error_p = [0.0] * len(joint_names)
@@ -148,9 +159,45 @@ class VelCommands:
                     self.r.sleep()
 
             print 'time: ', rospy.Time.now().secs - start_time.secs
-            rospy.sleep(4)
-            reset_naive_sim.reset_simulator()
+            self.lift_object()
+            #score = trajectory_evaluation_service(trajectories, manipulability, trajectories_length, object_to_grasp,
+            #                                         pos_error)
+            #rospy.sleep(4)
+            #reset_naive_sim.reset_simulator()
 
+    def lift_object(self):
+        act = rospy.get_param('should_lift', True)
+        if act:
+            try:
+                # Open YAML configuration file
+                pack = rospkg.RosPack()
+                dir = pack.get_path('iai_trajectory_generation_boxy') + '/config/controller_param.yaml'
+                stream = open(dir, 'r')
+                data = yaml.load(stream)
+                data['start_config'] = self.joint_pos
+
+                # Write file
+                with open(dir, 'w') as outfile:
+                    yaml.dump(data, outfile, default_flow_style=False)
+            except yaml.YAMLError, KeyError:
+                rospy.logerr("Unexpected error while writing controller configuration YAML file:"), sys.exc_info()[0]
+                return -1
+            rospy.sleep(0.2)
+            reset_naive_sim.reset_simulator()
+            lift_object.lift()
+
+
+def trajectory_evaluation_service(trajectories, manipulability,trajectories_length, object_to_grasp, position_error):
+    # Calling a service that evaluates obtained trajectories and selects the best one
+    rospy.wait_for_service('trajectory_evaluation')
+    try:
+        evaluate = rospy.ServiceProxy('trajectory_evaluation', TrajectoryEvaluation)
+        print 'mani', manipulability
+        selected_traj = evaluate(trajectories, manipulability, trajectories_length, position_error, object_to_grasp)
+        return selected_traj
+    except rospy.ServiceException, e:
+        rospy.logerr("Service 'Trajectory Evaluation' call failed: %s" % e)
+        return -1
 
 def main():
     rospy.init_node('send_traj_to_boxy')

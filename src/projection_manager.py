@@ -34,7 +34,6 @@ from iai_trajectory_generation_boxy.msg import ProjectedGraspingFeedback, Reques
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation
 from iai_markers_tracking.msg import Object
 from iai_markers_tracking.srv import GetObjectInfo
-from giskard_msgs.msg import WholeBodyCommand
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 from kdl_parser import kdl_tree_from_urdf_model
@@ -400,9 +399,10 @@ class SelectGoal:
             data['watchdog_period'] = 0.1
 
             set_start_config = rospy.get_param('set_start_config')
-            if set_start_config:
-                print
-                data['start_config'] = joint_w_values
+            # if set_start_config:
+            data['start_config'] = joint_w_values
+            rospy.sleep(0.2)
+            reset_naive_sim.reset_simulator()
 
             # Write file
             with open(dir, 'w') as outfile:
@@ -480,7 +480,7 @@ class SelectGoal:
                 rospy.loginfo('Action state: {}. \n'.format(state))
         action_result = self.gp_action.get_result()
 
-        return action_result, state
+        return action_result, state, arm, self.goal_pose.child_frame_id
 
     def action_feedback_cb(self, msg):
         #rospy.loginfo('Action Feedback: {}'.format(msg.sim_status))
@@ -598,7 +598,9 @@ class ProjectedGraspingServer:
             self.action_server.publish_result(self.action_status, self.result)
             self.goal_received = False
             self.action_server.internal_cancel_callback(goal_id=self.action_status.goal_id)
+            rospy.set_param('should_lift', True)
         return self.object_to_grasp, self.goal_received
+
 
 
 def trajectory_evaluation_service(trajectories, manipulability,trajectories_length, object_to_grasp, position_error):
@@ -640,12 +642,14 @@ def request(receive_goal, projection_class, selected_trajectory):
         trajectories_length = []
         manipulability = []
         pos_error = []
+        used_arm = []
+        pose_grasped = []
         found_traj = 0
-        for x in range(5):
+        for x in range(2):
             traj = Trajectory()
             # Plot EEF trajectory in RVIZ
             test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
-            trajectory_projection, status = projection_class.call_gp_action()
+            trajectory_projection, status, arm, pose = projection_class.call_gp_action()
             if status == 'SUCCEEDED':
                 # Save arrays for trajectory evaluation
                 manipulability.append(projection_class.get_manipulability(jacobian))
@@ -653,6 +657,8 @@ def request(receive_goal, projection_class, selected_trajectory):
                 trajectories.append(traj)
                 trajectories_length.append(trajectory_projection.trajectory_length)
                 pos_error.append(trajectory_projection.position_error)
+                used_arm.append(arm)
+                pose_grasped.append(pose)
                 found_traj += 1
                 if found_traj >= 2:  # If trajectory succeded twice for that GP, try next one
                     arm, jacobian, closest_pose = projection_class.select_new_gp(closest_pose, object_to_grasp)
@@ -670,6 +676,8 @@ def request(receive_goal, projection_class, selected_trajectory):
             if selected.selected_trajectory != -1:
                 selected_trajectory = trajectories[selected.selected_trajectory]
                 rospy.loginfo(selected)
+                rospy.set_param('arm', used_arm[selected.selected_trajectory])
+                rospy.set_param('grasped_pose', pose_grasped[selected.selected_trajectory])
             else:
                 rospy.logerr('Trajectory generation failed, all trajectories had a collision')
                 receive_goal.cancel_cb(0)
