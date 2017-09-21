@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="reset_sim" pkg="iai_trajectory_generation_boxy" type="reset_sim_parameters.py"
+          respawn="false" output="screen"/>
+    <rosparam command="load" file="$(find iai_trajectory_generation_boxy)/config/controller_param.yaml" />
+
+</launch>
