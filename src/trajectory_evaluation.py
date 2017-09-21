@@ -91,7 +91,7 @@ class TrajEvaluation:
 
         return np.mean(jerk_active)
 
-    def get_score(self,traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error):
+    def get_score(self,traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error, time):
         # Variables
         num_traj = len(traj_length)
         max_length = 4.0
@@ -136,6 +136,7 @@ class TrajEvaluation:
             for line in text_line:
                 f.write(line)
             f.write('\hline \n')
+            f.write('duration collision eval'+str(time)+'\n')
 
         return score
 
@@ -153,6 +154,7 @@ class TrajEvaluation:
         acc_change = []
         vel_change = []
         collision_dist = []
+        time = []
         rospy.loginfo('Service TrajectoryEvaluation: Evaluating trajectories')
         # Get collision objects
         obj_list = self.select_objects()
@@ -164,12 +166,15 @@ class TrajEvaluation:
                 vel_change.append(vel)
                 acc_change.append(self.acceleration_change(acc, l))
             try:
+                tic = rospy.get_rostime()
                 dist = self.collision_service(trajectory, obj_list)
+                toc = rospy.get_rostime()
+                time.append(toc.secs - tic.secs)
                 collision_dist.append(dist.min_collision_distance)
             except rospy.ServiceException, e:
                 print "Service CollisionEvaluation call failed: %s" % e
 
-        scores = self.get_score(traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error)
+        scores = self.get_score(traj_length, vel_change, acc_change, collision_dist, manipulability, pos_error, time)
 
         print 'scores; ',scores
         if min(scores) == 100:
