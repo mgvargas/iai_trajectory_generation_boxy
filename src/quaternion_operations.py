@@ -78,7 +78,8 @@ def quat_to_axisangle(q):
     try:
         theta = 2 * math.acos(w)
     except ValueError:
-        theta = 2 * math.acos(w + 0.01)
+        w += 0.025
+        theta = 2 * math.acos(w)
     s = math.sqrt(1 - w * w)
     if s < 0.001:
         ax = x

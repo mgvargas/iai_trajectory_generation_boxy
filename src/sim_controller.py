@@ -68,7 +68,7 @@ class RequestTrajectoryServer:
         self.far = False
         # self.old_error = [1.0, 1.0, 1.0]
         # TODO: find appropriate max acceleration
-        self.accel_max = np.array([0.1, 0.1, 0.1, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
+        self.accel_max = np.array([0.05, 0.05, 0.1, 0.01, 0.64, 0.64, 0.75, 0.75, 0.75, 1.05, 1.05])
         #self.accel_max = np.array([0.3, 0.3, 0.3, 1.02, 1.9, 1.9, 1.95, 1.95, 1.95, 2.05, 2.05])
 
         joint_topic = rospy.get_param('joint_topic')
@@ -187,19 +187,27 @@ class RequestTrajectoryServer:
     def calc_posit_error(self, error_posit):
         self.reach_position = False
         # Error threshold
-        threshold = 0.02 * self.prop_gain
+        threshold = 0.014 * self.prop_gain
         precision = 0.02  # Allowed error
 
         self.calc_eef_position(self.joint_values)
         eef_posit = np.array([self.eef_pose.p[0], self.eef_pose.p[1], self.eef_pose.p[2]])
+
+        # error_pre = self.goal_posit - eef_posit
+        # error_goal = self.pregrasp_posit - eef_posit
+        # e_pre = sqrt(pow(error_pre[0],2) + pow(error_pre[1],2) + pow(error_pre[2],2))
+        # e_goal = sqrt(pow(error_goal[0],2) + pow(error_goal[1],2) + pow(error_goal[2],2))
 
         # Select between pre-grasping pose and grasping pose
         if max(error_posit) > threshold and not self.reach_pregrasp:
             error_posit = (self.pregrasp_posit - eef_posit) * self.prop_gain
             # At the beginning, move a bit more so that arm has better manipulability (center robot in front of object)
             if self.far and self.offset_direction:
-                error_posit[1] += self.offset_direction * 0.1 * self.prop_gain
+                error_posit[1] += self.offset_direction * 0.08 * self.prop_gain
 
+        # elif abs(e_goal) < abs(e_pre+0.005):
+        #    self.reach_pregrasp = True
+        #    error_posit = (self.goal_posit - eef_posit) * self.prop_gain
         else:
             self.reach_pregrasp = True
             error_posit = (self.goal_posit - eef_posit) * self.prop_gain
@@ -415,6 +423,8 @@ class RequestTrajectoryServer:
 
             if return_value != returnValue.SUCCESSFUL_RETURN:
                 rospy.logerr("QP-Problem returned without success! ")
+                print "GOAL ",self.pose_name, self.goal_pose
+                print 'eef',self.eef_pose
                 self.abort_goal('infeasible')
                 break
 
@@ -645,6 +655,8 @@ class RequestTrajectoryServer:
                         self.joint_limits_upper[n] = jnt.limit.upper
 
                     self.joint_vel_limits[n] = jnt.limit.velocity
+            self.joint_vel_limits[0] = 0.3
+            self.joint_vel_limits[1] = 0.3
         except (RuntimeError, TypeError, NameError):
             rospy.logerr("Unexpected error:", sys.exc_info()[0])
             rospy.logerr('Could not re-init the kinematic chain')

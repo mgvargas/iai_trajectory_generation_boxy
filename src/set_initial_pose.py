@@ -121,7 +121,7 @@ def two():
         'right_arm_4_joint': -1.234,
         'right_arm_5_joint': 1.804,
         'right_arm_6_joint': -1.068,
-        'triangle_base_joint': -0.5}
+        'triangle_base_joint': -0.2}
     return joints_w_values
 
 
@@ -278,9 +278,9 @@ def eight():
         'left_arm_4_joint': -2.5866940021514893,
         'left_arm_5_joint': -1.9400300979614258,
         'left_arm_6_joint': -1.2900283336639404,
-        'odom_x_joint': 0.0,
-        'odom_y_joint': 0.0,
-        'odom_z_joint': 0.0,
+        'odom_x_joint': -1.5,
+        'odom_y_joint': -0.6,
+        'odom_z_joint': 0.7,
         'right_arm_0_joint': -0.5976466536521912,
         'right_arm_1_joint': 0.5533322691917419,
         'right_arm_2_joint': -0.750594973564148,
@@ -289,6 +289,34 @@ def eight():
         'right_arm_5_joint': -0.466553658246994,
         'right_arm_6_joint': 2.046936511993408,
         'triangle_base_joint': -0.2314388,
+        'neck_shoulder_lift_joint': -3.0928,
+        'neck_shoulder_pan_joint': -1.67144,
+        'neck_wrist_1_joint': 1.23036,
+        'neck_wrist_2_joint': 1.54493,
+        'neck_wrist_3_joint': 0.04506
+    }
+    return joints_w_values
+
+def nine():
+    joints_w_values = {
+        'odom_x_joint':-2.0,
+        'odom_y_joint': 0.6,
+        'odom_z_joint': -0.07,
+        'left_arm_0_joint': -1.8141040791344656,
+        'left_arm_1_joint': 0.5041563170652014,
+        'left_arm_2_joint': -0.06745831729484648,
+        'left_arm_3_joint': -1.6706647341321785,
+        'left_arm_4_joint': -2.323427271128583,
+        'left_arm_5_joint': -1.251311271483552,
+        'left_arm_6_joint': -2.4343250641865994,
+        'right_arm_0_joint': 0.7630299467680984,
+        'right_arm_1_joint': -0.24891211019592718,
+        'right_arm_2_joint': -2.3904063918914167,
+        'right_arm_3_joint': -1.3111724708970076,
+        'right_arm_4_joint': -0.9805491626453996,
+        'right_arm_5_joint': 1.6912437261370856,
+        'right_arm_6_joint': -1.527660926082835,
+        'triangle_base_joint': -0.2694484716606053,
         'neck_shoulder_lift_joint': -3.0928,
         'neck_shoulder_pan_joint': -1.67144,
         'neck_wrist_1_joint': 1.23036,
@@ -338,6 +366,7 @@ def select_option():
                6: six,
                7: seven,
                8: eight,
+               9: nine,
                }
 
     joint_w_values = options[int(config_number)]()
