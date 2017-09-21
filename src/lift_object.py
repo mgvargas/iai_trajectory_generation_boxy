@@ -34,10 +34,9 @@ class Lifting:
         self.gp_action = actionlib.SimpleActionClient('request_trajectory', RequestTrajectoryAction)
         self.pub_trajectory = rospy.Publisher("projected_grasping_server/result", ProjectedGraspingActionResult, queue_size=3)
 
-
     def get_pose(self):
+        t = ProjectedGraspingActionResult()
         arm = rospy.get_param('arm')
-        g_pose = rospy.get_param('grasped_pose')
         if arm == 'left':
             self.gripper_pose = self.grip_left
             self.gripper =  "left_arm_gripper/goal_position"
@@ -54,23 +53,33 @@ class Lifting:
                     tf2_ros.InvalidArgumentException):
             rospy.logerr('No TF found between gripper and object.')
         else:
-            pose.transform.translation.z += 0.1
+            pose.transform.translation.z += 0.08
 
-            self.call_gp_action(pose, arm)
+            res, state = self.call_gp_action(pose, arm)
+            if state == 'SUCCEEDED':
+                t.result.selected_trajectory.trajectory = res.trajectory
+                self.pub_trajectory.publish(t)
+            else:
+                pose.transform.translation.z -= 0.03
+                t, state = self.call_gp_action(pose, arm)
+                if state == 'SUCCEEDED':
+                    t.result.selected_trajectory.trajectory = res.trajectory
+                    self.pub_trajectory.publish(t)
+                else:
+                    rospy.logerr('No trajectory found for lifting position')
 
     def close_gripper(self):
         pub_gripper = rospy.Publisher(self.gripper, PositionCmd, queue_size=3)
-        rospy.sleep(1)
+        rospy.sleep(0.5)
         close = PositionCmd()
         close.pos = 30.0
         close.speed = 60.0
-        close.force = 20.0
+        close.force = 30.0
         print "Closing gripper", self.gripper
         pub_gripper.publish(close)
-        rospy.sleep(1)
+        rospy.sleep(2)
 
     def call_gp_action(self, pose, arm):
-        t = ProjectedGraspingActionResult()
         self.gp_action.wait_for_server()
 
         goal = RequestTrajectoryGoal(grasping_pose=pose, pre_grasping=pose, arm=arm)
@@ -100,12 +109,8 @@ class Lifting:
                 rospy.loginfo('Action state: {}. \n'.format(state))
         res = self.gp_action.get_result()
 
-        t.result.selected_trajectory.trajectory = res.trajectory
-
-        self.pub_trajectory.publish(t)
-
         rospy.set_param('should_lift', False)
-        return 0
+        return res, state
 
     @staticmethod
     def action_state_to_string():
