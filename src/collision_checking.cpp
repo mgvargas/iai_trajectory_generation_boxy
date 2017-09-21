@@ -65,12 +65,13 @@ moveit_msgs::CollisionObject create_collision_object(visualization_msgs::Marker 
     shape_msgs::Mesh mesh;
     shapes::ShapeMsg mesh_msg;
     moveit_msgs::CollisionObject collision_object;
-    Eigen::Vector3d b(0.001,0.001,0.001);
+    //Eigen::Vector3d b(0.001,0.001,0.001); Now all collision meshes in meters
+    Eigen::Vector3d b(1.0,1.0,1.0);
 
     mesh_path = marker.mesh_resource;
-    if (marker.ns == "kitchen_table" || marker.ns == "cup" ){    // Mesh scale
-        Eigen::Vector3d s(1.0,1.0,1.0);
-        b = s;}
+    //if (marker.ns == "kitchen_table" || marker.ns == "cup" ){    // Mesh scale
+    //    Eigen::Vector3d s(1.0,1.0,1.0);
+    //    b = s;}
     m = shapes::createMeshFromResource(mesh_path,b);
     shapes::constructMsgFromShape(m, mesh_msg);
     mesh = boost::get<shape_msgs::Mesh>(mesh_msg);

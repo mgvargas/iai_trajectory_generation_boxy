@@ -187,7 +187,7 @@ class RequestTrajectoryServer:
     def calc_posit_error(self, error_posit):
         self.reach_position = False
         # Error threshold
-        threshold = 0.014 * self.prop_gain
+        threshold = 0.008 * self.prop_gain
         precision = 0.02  # Allowed error
 
         self.calc_eef_position(self.joint_values)
@@ -423,8 +423,12 @@ class RequestTrajectoryServer:
 
             if return_value != returnValue.SUCCESSFUL_RETURN:
                 rospy.logerr("QP-Problem returned without success! ")
-                print "GOAL ",self.pose_name, self.goal_pose
-                print 'eef',self.eef_pose
+                print 'joint limits: ', self.joint_limits_lower
+                print 'joint values: ', self.joint_values
+                print 'position error:', error_posit / self.prop_gain
+                print 'eef ori: [%.3f %.3f %.3f] '%(self.eef_pose.p[0],self.eef_pose.p[1], self.eef_pose.p[2])
+                print 'goal ori : [%.3f %.3f %.3f] '%(self.goal_orient_euler[0], self.goal_orient_euler[0],
+                                                      self.goal_orient_euler[0],)
                 self.abort_goal('infeasible')
                 break
 

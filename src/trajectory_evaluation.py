@@ -18,6 +18,7 @@
 
 import rospy
 import rospkg
+import yaml
 import numpy as np
 from iai_trajectory_generation_boxy.srv import TrajectoryEvaluation, CollisionEvaluation
 from visualization_msgs.msg import MarkerArray
@@ -35,15 +36,30 @@ class TrajEvaluation:
     def marker_callback(self, msg):
         self.all_markers = msg
 
+    # Open database YAML file
+    def op_file(self):
+        rospack = rospkg.RosPack()
+        dir = rospack.get_path('iai_markers_tracking') + '/config/database.yaml'
+        with open(dir, 'r') as f:
+            try:
+                db_file = f.read()
+                self.yaml_file = yaml.load(db_file)  # Creates a dictionary
+            except yaml.YAMLError as exc:
+                print(exc)
+
     def select_objects(self):
         # Selects objects to send to the collision checking
         obj_list = MarkerArray()
         self.obj_names = []
 
+        # Open database to get collision mesh
+        self.op_file()
+
         for obj in self.all_markers.markers:
             # If marker is not a grasping pose
             if 'gp' not in obj.ns:
                 if obj.ns not in self.obj_names and self.goal_obj != obj.ns:
+                    obj.mesh_resource = self.yaml_file[obj.ns]['mesh_collision']
                     self.obj_names.append(obj.ns)
                     obj_list.markers.append(obj)
         return obj_list
