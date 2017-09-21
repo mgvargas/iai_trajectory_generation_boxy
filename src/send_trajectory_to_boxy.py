@@ -163,8 +163,7 @@ class VelCommands:
             print 'time: ', rospy.Time.now().secs - start_time.secs
             self.lift_object()
             trajectory_evaluation(x, y, error_pos, rospy.Time.now().secs - start_time.secs)
-            # rospy.sleep(4)
-            # reset_naive_sim.reset_simulator()
+
 
     def lift_object(self):
         act = rospy.get_param('should_lift', True)

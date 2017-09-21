@@ -1,0 +1,96 @@
+mondamin_gp5
+{mondamin}& 256.49 & 0.142 & 0.241 & 57.05 & 0.099 & 1.37 & 8.974
+lenght: 1254, error: 0.00151882935759, duration: 6
+lenght: 100, error: 0.000832556990023, duration: 1 ---- Dropped object
+
+
+length: 45 iter: 122, error: 0.116807739225, duration: 0 --- Slipped while closing gripper
+
+length: 51iter: 119, error: 0.121367650665, duration: 1  --- Hit obj with gripper
+
+length: 62iter: 134, error: 0.129129842192, duration: 1 --- Grasped but slipped while lifting
+
+grasped pose:knorr_tomate_gp3 
+215.34 & 0.388 & 0.767 & 83.84 & 0.095 & 0.97 & 10.971
+length: 131, iter: 406, error: 0.0144901874669, duration: 7
+grasped pose:knorr_tomate_gp3 
+length: 41, iter: 95, error: 0.116296956339, duration: 1 --- GRASPED
+
+grasped pose:knorr_tomate_gp3 
+length: 130, iter: 493, error: -0.0311235781102, duration: 7
+grasped pose:knorr_tomate_gp3 
+length: 47, iter: 124, error: 0.115969448244, duration: 1 --- GRASPED
+
+grasped pose:knorr_tomate_gp3 
+208.8 & 0.651 & 1.301 & 59.39 & 0.118 & 0.86 & 8.361
+length: 138, iter: 425, error: -0.0134625764175, duration: 7
+grasped pose:knorr_tomate_gp3 
+length: 34, iter: 78, error: 0.103837088713, duration: 0 --- GRASPED
+
+grasped pose:knorr_tomate_gp3 
+ 205.62 & 0.315 & 0.54 & 54.19 & 0.103 & 0.94 & 7.903
+length: 183, iter: 804, error: -0.0937150259476, duration: 8
+grasped pose:knorr_tomate_gp3 
+length: 34, iter: 66, error: 0.0901663259336, duration: 1 --- GRASPED
+grasped pose:knorr_tomate_gp3 
+length: 178, iter: 792, error: -0.11390033576, duration: 9
+grasped pose:knorr_tomate_gp3 
+length: 48, iter: 86, error: 0.104295895265, duration: 1 --- Slipped while closing gripper
+grasped pose:knorr_tomate_gp3 
+length: 43, iter: 102, error: -0.0907599543315, duration: 5
+grasped pose:knorr_tomate_gp3 
+length: 31, iter: 44, error: 0.0491900695335, duration: 1 --- Hit obj with gripper
+grasped pose:knorr_tomate_gp3 
+length: 128, iter: 421, error: 0.00370819635464, duration: 7
+grasped pose:knorr_tomate_gp3 
+length: 33, iter: 93, error: 0.108649463657, duration: 1 --- Grasped but slipped while lifting
+
+grasped pose:knorr_tomate_gp3 
+219.92 & 0.197 & 0.32 & 62.9 & 0.12 & 0.68 & 8.329
+length: 321, iter: 1288, error: -0.025187586008, duration: 11
+length: 53, iter: 94, error: 0.0797180217346, duration: 1 --- GRASPED
+
+grasped pose:knorr_tomate_gp3 
+length: 174, iter: 629, error: -0.0225745848807, duration: 8
+grasped pose:knorr_tomate_gp3 
+length: 40, iter: 92, error: 0.105715573439, duration: 1 --- GRASPED
+
+grasped pose:mondamin_gp5 
+ 194.52 & 0.286 & 0.374 & 53.66 & 0.09 & 1.1 & 8.092 
+length: 213, iter: 1016, error: -0.0022052135405, duration: 10
+grasped pose:mondamin_gp5 
+length: 60, iter: 115, error: 0.101806533297, duration: 1 --- GRASPED
+
+grasped pose:mondamin_gp5 
+length: 265, iter: 951, error: 0.0164008935739, duration: 8
+grasped pose:mondamin_gp5 
+length: 60, iter: 104, error: 0.107827278142, duration: 0 --- Hit obj with gripper
+
+grasped pose:mondamin_gp5 
+216.37 & 0.304 & 0.54 & 59.63 & 0.095 & 1.04 & 8.642
+length: 211, iter: 834, error: 0.0203713271094, duration: 9
+grasped pose:mondamin_gp5 
+length: 50, iter: 89, error: 0.119013159909, duration: 1 --- GRASPED
+
+grasped pose:mondamin_gp5 
+length: 254, iter: 1052, error: 0.00580682241739, duration: 10
+grasped pose:mondamin_gp5 
+length: 51, iter: 113, error: 0.0990565032475, duration: 1 --- Hit obj with gripper
+grasped pose:mondamin_gp5 
+length: 240, iter: 1205, error: 0.0141499555038, duration: 12
+grasped pose:mondamin_gp5 
+length: 50, iter: 109, error: 0.120819402817, duration: 1 --- Hit obj with gripper
+grasped pose:mondamin_gp5 
+length: 244, iter: 1201, error: 0.0395961693622, duration: 11
+grasped pose:mondamin_gp5 
+
+length: 173, iter: 843, error: -0.0277235476379, duration: 9
+214.54 & 0.36 & 0.5 & 71.15 & 0.11 & 1.1 & 9.866 
+grasped pose:mondamin_gp5 
+length: 56, iter: 124, error: 0.0844116740561, duration: 1 --- GRASPED
+grasped pose:mondamin_gp5 
+length: 177, iter: 908, error: -0.00484817629769, duration: 10
+grasped pose:mondamin_gp5 
+length: 66, iter: 134, error: 0.0781552442927, duration: 1 --- GRASPED
+
+

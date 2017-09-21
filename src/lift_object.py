@@ -72,7 +72,7 @@ class Lifting:
         pub_gripper = rospy.Publisher(self.gripper, PositionCmd, queue_size=3)
         rospy.sleep(0.5)
         close = PositionCmd()
-        close.pos = 30.0
+        close.pos = 0.0
         close.speed = 60.0
         close.force = 30.0
         print "Closing gripper", self.gripper

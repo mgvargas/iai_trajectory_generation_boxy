@@ -522,7 +522,6 @@ class SelectGoal:
             arm, jacobian = self.arm_selector(new_pose)
         else:
             grasping_poses = self.object_grasping_poses(object_to_grasp)
-            print grasping_poses
             # Change arm
             if self.left_arm:
                 self.frame_end = self.grip_right
