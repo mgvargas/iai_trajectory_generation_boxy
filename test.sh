@@ -7,7 +7,7 @@ ID='HI'
 cd ~/obj_grasp_ws/src/iai_trajectory_generation_boxy/src
 i=0
 
-for VAR in {0..7}
+for VAR in {0..9}
 do
     echo "Setting initial robot config " $VAR
     python set_initial_pose.py $VAR
@@ -37,10 +37,10 @@ goal:
 		  if [ "$OBJ" = "knorr_tomate" ]; then
 				python set_initial_pose.py $(($VAR+1))
 		  fi
-		  sleep 2m
+		  sleep 1m
+		  sleep 20
     done
-	 
-	 
+
     #pkill roslaunch
 done
 

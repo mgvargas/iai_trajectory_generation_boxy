@@ -3,10 +3,10 @@
 
     <!-- Parameters NOTE: if arg Boxy is true, arg sim must be false -->
     <arg name="debug" default="false" />
-    <arg name="sim" default="true" /> <!-- Object detection -->
+    <arg name="sim" default="false" /> <!-- Object detection -->
     <arg name="rviz" default="true" />
     <arg name="naive" default="true" />
-    <arg name="boxy" default="false" />
+    <arg name="boxy" default="true" />
     <arg name="urdf-name" default="boxy_description.urdf.xacro"/>
     <arg name="urdf-path" default="$(find iai_boxy_description)/robots/$(arg urdf-name)"/>
     <arg name="param-name" default="robot_description"/>
@@ -21,7 +21,6 @@
     </include>
 
     <!-- Simulation (publishes markers in tf) -->
-    <!--include file="$(find iai_boxy_description)/launch/upload_boxy.launch" /-->
     <group if="$(arg naive)">
         <include file="$(find iai_trajectory_generation_boxy)/launch/naive_kinem_sim.launch">
             <arg name="boxy" value="$(arg boxy)"/>
