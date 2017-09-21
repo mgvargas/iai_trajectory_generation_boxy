@@ -86,6 +86,7 @@ class VelCommands:
             self.integrator_max = 10
             traj_init_time = self.trajectory[0].header.stamp
             start_time = rospy.Time.now()
+            x, y = 0, 0
 
             # test_plotter.main(randrange(0, 100) / 100.0, randrange(0, 10) / 10.0, randrange(0, 100) / 100.0)
 
@@ -104,8 +105,9 @@ class VelCommands:
                 now = rospy.Time.now()
                 time_elapsed = now - start_time
                 cont_values = PIControllerError()
-
+                y += 1
                 while time_elapsed <= (traj_stamp - traj_init_time):
+                    x += 1
                     boxy_command = JointState()
                     cont_values.des_p = [0.0] * len(joint_names)
                     cont_values.real_p = [0.0] * len(joint_names)
@@ -160,10 +162,9 @@ class VelCommands:
 
             print 'time: ', rospy.Time.now().secs - start_time.secs
             self.lift_object()
-            #score = trajectory_evaluation_service(trajectories, manipulability, trajectories_length, object_to_grasp,
-            #                                         pos_error)
-            #rospy.sleep(4)
-            #reset_naive_sim.reset_simulator()
+            trajectory_evaluation(x, y, error_pos, rospy.Time.now().secs - start_time.secs)
+            # rospy.sleep(4)
+            # reset_naive_sim.reset_simulator()
 
     def lift_object(self):
         act = rospy.get_param('should_lift', True)
@@ -187,17 +188,14 @@ class VelCommands:
             lift_object.lift()
 
 
-def trajectory_evaluation_service(trajectories, manipulability,trajectories_length, object_to_grasp, position_error):
-    # Calling a service that evaluates obtained trajectories and selects the best one
-    rospy.wait_for_service('trajectory_evaluation')
-    try:
-        evaluate = rospy.ServiceProxy('trajectory_evaluation', TrajectoryEvaluation)
-        print 'mani', manipulability
-        selected_traj = evaluate(trajectories, manipulability, trajectories_length, position_error, object_to_grasp)
-        return selected_traj
-    except rospy.ServiceException, e:
-        rospy.logerr("Service 'Trajectory Evaluation' call failed: %s" % e)
-        return -1
+def trajectory_evaluation(iter, length, error, time):
+    g_pose = rospy.get_param('grasped_pose')
+    pack = rospkg.RosPack()
+    dir = pack.get_path('iai_trajectory_generation_boxy') + '/test_scores/robot_test.txt'
+    with open(dir, 'a') as f:
+        f.write('grasped pose:'+ g_pose + ' \n'  + 'length: ' + str(length))
+        f.write(', iter: ' + str(iter) +', error: ' + str(error*100) +', duration: ' + str(time) + '\n')
+
 
 def main():
     rospy.init_node('send_traj_to_boxy')
